@@ -4,6 +4,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { HeroShapes } from '@/components/HeroShapes'
 import { Plans } from '@/components/Plans'
 import { useSession } from '@/hooks/useSession'
+import { CONTACT_EMAIL, SITE_NAME } from '@/lib/site'
 
 const TRUST = [
   'Pagamento seguro com Stripe',
@@ -123,9 +124,14 @@ export default function Landing() {
       </main>
 
       <footer className="border-t">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6 text-sm text-muted-foreground">
-          <span>Selton de Souza</span>
-          <Link to="/entrar" className="underline">Área de cliente</Link>
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} {SITE_NAME}</span>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link to="/termos" className="underline">Termos</Link>
+            <Link to="/privacidade" className="underline">Privacidade</Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="underline">Contacto</a>
+            <Link to="/entrar" className="underline">Área de cliente</Link>
+          </nav>
         </div>
       </footer>
     </div>

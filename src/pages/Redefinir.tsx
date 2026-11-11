@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/PasswordInput'
 import { Label } from '@/components/ui/label'
 import { useSession } from '@/hooks/useSession'
 import { supabase } from '@/lib/supabase'
@@ -39,7 +39,7 @@ export default function Redefinir() {
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Palavra-passe</Label>
-                <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+                <PasswordInput id="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
                 <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
               </div>
               <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Aguarde…' : 'Guardar'}</Button>

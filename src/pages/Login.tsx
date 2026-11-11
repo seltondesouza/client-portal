@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/PasswordInput'
 import { Label } from '@/components/ui/label'
 import { useSession } from '@/hooks/useSession'
 import { supabase } from '@/lib/supabase'
@@ -92,9 +93,8 @@ export default function Login() {
               {mode !== 'recuperar' && (
                 <div className="space-y-2">
                   <Label htmlFor="password">Palavra-passe</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     autoComplete={mode === 'criar' ? 'new-password' : 'current-password'}
                     required
                     minLength={8}
@@ -103,6 +103,12 @@ export default function Login() {
                   />
                   {mode === 'criar' && <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>}
                 </div>
+              )}
+              {mode === 'criar' && (
+                <p className="text-xs text-muted-foreground">
+                  Ao criar conta aceita os <Link to="/termos" className="underline">Termos</Link> e a{' '}
+                  <Link to="/privacidade" className="underline">Política de Privacidade</Link>.
+                </p>
               )}
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? 'Aguarde…' : mode === 'entrar' ? 'Entrar' : mode === 'criar' ? 'Criar conta' : 'Enviar link'}

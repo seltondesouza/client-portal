@@ -71,6 +71,7 @@ function ProjectEditor({ row, onSaved }: { row: Row; onSaved: () => void }) {
 export default function Admin() {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  const [q, setQ] = useState('')
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -85,6 +86,11 @@ export default function Admin() {
     load()
   }, [load])
 
+  const term = q.trim().toLowerCase()
+  const visible = rows.filter(
+    (r) => !term || (r.profiles?.email ?? '').toLowerCase().includes(term) || PLAN_LABEL[r.plan].toLowerCase().includes(term),
+  )
+
   return (
     <AppLayout title="Clientes e projetos">
       {loading ? (
@@ -92,7 +98,18 @@ export default function Admin() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Ainda sem projetos.</p>
       ) : (
-        rows.map((r) => <ProjectEditor key={r.id + r.stage} row={r} onSaved={load} />)
+        <>
+          <Input
+            type="search"
+            placeholder="Pesquisar por email ou plano…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhum resultado.</p>}
+          {visible.map((r) => (
+            <ProjectEditor key={r.id + r.stage} row={r} onSaved={load} />
+          ))}
+        </>
       )}
     </AppLayout>
   )
