@@ -4,9 +4,11 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { HeroShapes } from '@/components/HeroShapes'
 import { PasswordInput } from '@/components/PasswordInput'
 import { Label } from '@/components/ui/label'
 import { useSession } from '@/hooks/useSession'
+import { SITE_NAME } from '@/lib/site'
 import { supabase } from '@/lib/supabase'
 
 type Mode = 'entrar' | 'criar' | 'recuperar'
@@ -66,8 +68,11 @@ export default function Login() {
         : 'Indique o seu email para receber um link de recuperação.'
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-sm items-center px-4">
-      <Card className="w-full">
+    <div className="relative">
+    <HeroShapes />
+    <main className="relative mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-4">
+      <Link to="/" className="text-center text-lg font-semibold">{SITE_NAME}</Link>
+      <Card className="w-full shadow-lg">
         <CardHeader>
           <CardTitle>{TITLE[mode]}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -142,5 +147,6 @@ export default function Login() {
         </CardContent>
       </Card>
     </main>
+    </div>
   )
 }

@@ -41,7 +41,6 @@ Copie `.env.example` para `.env` (frontend, `VITE_*`). Os segredos das funções
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | frontend | Supabase → Project Settings → API |
 | `VITE_ADMIN_EMAIL` | frontend | Email do admin (só controla o que se vê; a segurança real está na base de dados e nas funções) |
 | `VITE_STRIPE_PRICE_*` | frontend | IDs dos 4 preços (mensal/anual de cada plano) |
-| `VITE_STRIPE_PRICE_TEST` | frontend | Opcional: preço gratuito de teste, só visível para o email do admin. **Remover antes de lançar.** |
 | `STRIPE_SECRET_KEY` | função | Chave **restrita** (`rk_live_…`) com Checkout Sessions, Customer portal, Subscriptions (escrita) e Prices, Customers (leitura) |
 | `STRIPE_WEBHOOK_SECRET` | função | `whsec_…` do endpoint do webhook |
 | `SITE_URL` | função | URL do site |
@@ -83,6 +82,6 @@ O repositório está ligado à Vercel: cada push para `main` publica em produç�
 ## Segurança em resumo
 
 - RLS em todas as tabelas: os clientes só leem (e, no briefing, escrevem) os seus próprios dados; só o admin altera projetos.
-- `create-checkout` exige sessão iniciada e liga o pagamento à conta; um preço gratuito só é aceite para o email do admin.
+- `create-checkout` exige sessão iniciada e liga o pagamento à conta.
 - `notify-stage` verifica o admin no servidor e valida os endereços (preview, final e administração).
 - O briefing e os links são sempre mostrados ao cliente como endereços absolutos validados.

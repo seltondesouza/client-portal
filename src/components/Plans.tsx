@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -7,21 +8,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useSession } from '@/hooks/useSession'
 import { eur, PLANS, type Interval } from '@/lib/plans'
-import { ADMIN_EMAIL, supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 // Plan cards with the monthly/annual toggle. Used on the homepage and inside the dashboard.
 // Subscribing needs an account: visitors are sent to create one first.
-// a+tag@gmail.com counts as a@gmail.com (same inbox).
-const base = (e: string) => e.toLowerCase().replace(/\+[^@]*@/, '@')
-const TEST_PRICE = import.meta.env.VITE_STRIPE_PRICE_TEST as string | undefined
-
 export function Plans() {
   const [interval, setInterval] = useState<Interval>('month')
   const [busy, setBusy] = useState<string | null>(null)
   const { session } = useSession()
   const navigate = useNavigate()
-  const email = session?.user.email
-  const showTest = !!TEST_PRICE && !!email && !!ADMIN_EMAIL && base(email) === base(ADMIN_EMAIL)
 
   async function subscribe(priceId: string, key: string) {
     if (!session) {
@@ -48,26 +43,9 @@ export function Plans() {
         </ToggleGroup>
       </div>
 
-      {showTest && (
-        <Card className="mt-8 border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-2">
-              Plano de teste (gratuito)
-              <Badge variant="outline">Só visível para si</Badge>
-            </CardTitle>
-            <CardDescription>0,00 € /mês, sem cartão. Serve para testar o fluxo; será removido.</CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button variant="outline" disabled={busy !== null} onClick={() => subscribe(TEST_PRICE!, 'teste')}>
-              {busy === 'teste' ? 'A abrir…' : 'Subscrever teste'}
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {PLANS.map((p) => (
-          <Card key={p.key}>
+          <Card key={p.key} className="h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center justify-between gap-2">
                 {p.name}
@@ -75,19 +53,22 @@ export function Plans() {
               </CardTitle>
               <CardDescription>{p.examples}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex-1 space-y-5">
               <div>
                 <span className="text-muted-foreground line-through">{eur(p.normal[interval])}</span>
-                <p className="text-3xl font-semibold">
+                <p className="text-4xl font-semibold tracking-tight">
                   {eur(p.price[interval])}
                   <span className="text-base font-normal text-muted-foreground">
                     {interval === 'month' ? ' /mês' : ' /ano'}
                   </span>
                 </p>
               </div>
-              <ul className="space-y-1 text-sm">
+              <ul className="space-y-2 text-sm">
                 {p.features.map((f) => (
-                  <li key={f}>✓ {f}</li>
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0" />
+                    {f}
+                  </li>
                 ))}
               </ul>
             </CardContent>
