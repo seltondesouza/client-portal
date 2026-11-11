@@ -1,4 +1,5 @@
-import { admin, cors, getUser, json, stripe } from '../_shared/common.ts'
+import { admin, cors, getUser, json } from '../_shared/common.ts'
+import { stripe } from '../_shared/stripe.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })

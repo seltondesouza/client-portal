@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@17'
-import { admin, stripe } from '../_shared/common.ts'
+import { admin } from '../_shared/common.ts'
+import { stripe } from '../_shared/stripe.ts'
 import { sendEmail, templates } from '../_shared/email.ts'
 
 const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!

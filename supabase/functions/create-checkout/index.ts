@@ -1,4 +1,5 @@
-import { cors, json, stripe } from '../_shared/common.ts'
+import { cors, json } from '../_shared/common.ts'
+import { stripe } from '../_shared/stripe.ts'
 
 // Public: anyone can start a checkout. Stripe collects the email.
 Deno.serve(async (req) => {

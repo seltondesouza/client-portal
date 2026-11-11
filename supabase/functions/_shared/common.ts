@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import Stripe from 'npm:stripe@17'
 
 export const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -8,10 +7,6 @@ export const cors = {
 
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
-
-export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  httpClient: Stripe.createFetchHttpClient(),
-})
 
 // Service-role client: bypasses RLS. Only use after verifying the caller.
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
