@@ -1,4 +1,6 @@
-// Resend emails, one simple black-and-white template.
+// Emails via Gmail SMTP, one simple black-and-white template.
+import nodemailer from 'npm:nodemailer@6'
+
 const SITE_URL = Deno.env.get('SITE_URL')!
 
 function layout(title: string, body: string) {
@@ -30,10 +32,17 @@ export const templates = {
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
 
 export async function sendEmail(to: string, t: { subject: string; html: string }) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM'), to, ...t }),
-  })
-  if (!res.ok) console.error('Resend error', res.status, await res.text())
+  // Sends through the owner's Gmail account over SMTP (port 465; Supabase blocks 25/587).
+  try {
+    const user = Deno.env.get('GMAIL_USER')!
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass: Deno.env.get('GMAIL_APP_PASSWORD')! },
+    })
+    await transporter.sendMail({ from: `Selton de Souza <${user}>`, to, subject: t.subject, html: t.html })
+  } catch (e) {
+    console.error('Email error', e) // never break payments or stage updates because of email
+  }
 }
