@@ -9,7 +9,7 @@ import { StageTimeline } from '@/components/StageTimeline'
 import { useProject } from '@/hooks/useProject'
 import { useSession } from '@/hooks/useSession'
 import { supabase } from '@/lib/supabase'
-import { PLAN_LABEL, stageLabel } from '@/lib/stages'
+import { PLAN_LABEL, stageLabel, stageMessage } from '@/lib/stages'
 
 const STATUS: Record<string, string> = {
   active: 'Ativa',
@@ -103,7 +103,7 @@ export default function Dashboard() {
                     <ul className="space-y-4">
                       {updates.map((u) => (
                         <li key={u.id} className="border-l-2 pl-3 text-sm">
-                          <p className="font-medium">{stageLabel(u.stage)}</p>
+                          <p className="font-medium">{stageMessage(u.stage)}</p>
                           {u.note && <p>{u.note}</p>}
                           <p className="text-xs text-muted-foreground">{dateTimeFmt.format(new Date(u.created_at))}</p>
                         </li>

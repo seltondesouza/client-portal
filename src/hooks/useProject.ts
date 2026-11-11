@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Profile, Project, ProjectUpdate } from '@/lib/stages'
 
@@ -37,7 +38,10 @@ export function useProject(userId: string) {
     const channel = supabase
       .channel('client-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, load)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_updates' }, load)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'project_updates' }, () => {
+        toast('Nova atualização no seu projeto')
+        load()
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, load)
       .subscribe()
     return () => {

@@ -39,3 +39,11 @@ export type ProjectUpdate = {
   note: string | null
   created_at: string
 }
+
+// The message a client sees for each update (same wording the email would have used).
+export const stageMessage = (k: Stage) =>
+  k === 'pagamento'
+    ? 'Pagamento confirmado.'
+    : k === 'online'
+      ? 'O seu website está online!'
+      : `O seu projeto passou para a fase ${stageLabel(k)}. Aguarde o próximo passo.`

@@ -33,6 +33,7 @@ const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '
 
 export async function sendEmail(to: string, t: { subject: string; html: string }) {
   // Sends through the owner's Gmail account over SMTP (port 465; Supabase blocks 25/587).
+  if (!Deno.env.get('GMAIL_USER') || !Deno.env.get('GMAIL_APP_PASSWORD')) return // email not configured: in-app updates only
   try {
     const user = Deno.env.get('GMAIL_USER')!
     const transporter = nodemailer.createTransport({
