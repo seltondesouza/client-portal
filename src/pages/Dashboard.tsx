@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/AppLayout'
@@ -30,7 +30,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent({ userId }: { userId: string }) {
-  const { profile, project, updates, loading } = useProject(userId)
+  const { profile, project, updates, briefing, loading } = useProject(userId)
   const [busy, setBusy] = useState(false)
   const [params, setParams] = useSearchParams()
   const [confirming, setConfirming] = useState(false)
@@ -127,6 +127,24 @@ function DashboardContent({ userId }: { userId: string }) {
                       Ver pré-visualização do design
                     </a>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Briefing</CardTitle>
+                  <CardDescription>
+                    {briefing?.submitted_at
+                      ? 'Recebemos o seu briefing. Pode editá-lo se precisar.'
+                      : briefing
+                        ? 'Começou o briefing. Continue de onde ficou.'
+                        : 'Responda a algumas perguntas para percebermos o que pretende.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link to="/briefing" className={buttonVariants({ variant: briefing?.submitted_at ? 'outline' : 'default' })}>
+                    {briefing?.submitted_at ? 'Ver ou editar briefing' : briefing ? 'Continuar briefing' : 'Preencher briefing'}
+                  </Link>
                 </CardContent>
               </Card>
 

@@ -7,13 +7,40 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { FIELDS } from '@/lib/briefing'
 import { supabase } from '@/lib/supabase'
-import { PLAN_LABEL, STAGES, stageLabel, type Profile, type Project, type Stage } from '@/lib/stages'
+import { PLAN_LABEL, STAGES, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
 
 type Row = Project & { profiles: Pick<Profile, 'email'> | null }
 const items = STAGES.map((s) => ({ value: s.key, label: s.label }))
 
-function ProjectEditor({ row, onSaved }: { row: Row; onSaved: () => void }) {
+function BriefingView({ briefing }: { briefing?: Briefing }) {
+  if (!briefing) return <p className="text-sm text-muted-foreground">Briefing: ainda não iniciado.</p>
+  const entries = FIELDS.filter((f) => {
+    const v = briefing.answers[f.key]
+    return Array.isArray(v) ? v.length > 0 : !!v
+  })
+  return (
+    <details className="rounded-lg border p-3 text-sm">
+      <summary className="cursor-pointer font-medium">
+        Briefing {briefing.submitted_at ? 'enviado' : 'em curso'} ({entries.length} respostas)
+      </summary>
+      <dl className="mt-3 space-y-3">
+        {entries.map((f) => {
+          const v = briefing.answers[f.key]
+          return (
+            <div key={f.key}>
+              <dt className="text-xs text-muted-foreground">{f.label}</dt>
+              <dd className="whitespace-pre-wrap">{Array.isArray(v) ? v.join(', ') : v}</dd>
+            </div>
+          )
+        })}
+      </dl>
+    </details>
+  )
+}
+
+function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefing; onSaved: () => void }) {
   const [stage, setStage] = useState<Stage>(row.stage)
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState(row.preview_url ?? '')
@@ -43,6 +70,7 @@ function ProjectEditor({ row, onSaved }: { row: Row; onSaved: () => void }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <BriefingView briefing={briefing} />
         <div className="space-y-2">
           <Label>Fase</Label>
           <Select items={items} value={stage} onValueChange={(v) => v && setStage(v as Stage)}>
@@ -70,6 +98,7 @@ function ProjectEditor({ row, onSaved }: { row: Row; onSaved: () => void }) {
 
 export default function Admin() {
   const [rows, setRows] = useState<Row[]>([])
+  const [briefings, setBriefings] = useState<Record<string, Briefing>>({})
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
 
@@ -79,6 +108,8 @@ export default function Admin() {
       .select('*, profiles(email)')
       .order('created_at', { ascending: false })
     setRows((data as Row[]) ?? [])
+    const { data: b } = await supabase.from('briefings').select('*')
+    setBriefings(Object.fromEntries(((b as Briefing[]) ?? []).map((x) => [x.project_id, x])))
     setLoading(false)
   }, [])
 
@@ -107,7 +138,7 @@ export default function Admin() {
           />
           {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhum resultado.</p>}
           {visible.map((r) => (
-            <ProjectEditor key={r.id + r.stage} row={r} onSaved={load} />
+            <ProjectEditor key={r.id + r.stage} row={r} briefing={briefings[r.id]} onSaved={load} />
           ))}
         </>
       )}

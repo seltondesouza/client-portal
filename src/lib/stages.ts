@@ -32,6 +32,12 @@ export type Project = {
   preview_url: string | null
   created_at: string
 }
+export type Briefing = {
+  project_id: string
+  answers: Record<string, string | string[]>
+  submitted_at: string | null
+  updated_at: string
+}
 export type ProjectUpdate = {
   id: string
   project_id: string

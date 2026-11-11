@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import Admin from '@/pages/Admin'
+import Briefing from '@/pages/Briefing'
 import Dashboard from '@/pages/Dashboard'
 import Landing from '@/pages/Landing'
 import Login from '@/pages/Login'
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/termos" element={<Termos />} />
         <Route path="/privacidade" element={<Privacidade />} />
         <Route path="/painel" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/briefing" element={<ProtectedRoute><Briefing /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute admin><Admin /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
-import type { Profile, Project, ProjectUpdate } from '@/lib/stages'
+import type { Briefing, Profile, Project, ProjectUpdate } from '@/lib/stages'
 
 // Loads the signed-in client's profile, project and updates, and refetches live
 // whenever Supabase Realtime reports a change (RLS limits events to their own rows).
@@ -9,6 +9,7 @@ export function useProject(userId: string) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [project, setProject] = useState<Project | null>(null)
   const [updates, setUpdates] = useState<ProjectUpdate[]>([])
+  const [briefing, setBriefing] = useState<Briefing | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -29,6 +30,8 @@ export function useProject(userId: string) {
         .eq('project_id', pr.id)
         .order('created_at', { ascending: false })
       setUpdates(u ?? [])
+      const { data: b } = await supabase.from('briefings').select('*').eq('project_id', pr.id).maybeSingle()
+      setBriefing(b)
     }
     setLoading(false)
   }, [userId])
@@ -43,11 +46,12 @@ export function useProject(userId: string) {
         load()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'briefings' }, load)
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
   }, [load])
 
-  return { profile, project, updates, loading }
+  return { profile, project, updates, briefing, loading }
 }
