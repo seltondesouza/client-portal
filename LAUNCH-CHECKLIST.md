@@ -3,6 +3,10 @@
 Live site: https://client-portal-nine-beta.vercel.app
 Tags: **[you]** only you can do it, **[me]** I can do it when you say go.
 
+## Verified so far
+- Function logs: since your Stripe account was activated, checkout, the webhook, the customer portal and every stage change returned 200, with no errors.
+- Note: someone/something added the webhook idempotency change (migration `0005_project_checkout_session.sql`) during the session; repo, database and deployed function are in sync.
+
 ## 1. Remove before launch (test leftovers)
 - [ ] **[me]** Delete the Vercel variable `VITE_STRIPE_PRICE_TEST` (hides the "Plano de teste" card), then redeploy.
 - [ ] **[me]** Archive the free price "TESTE e-Commerce gratis (remover)" in Stripe (`price_1Uagi03SJEPEFTEtIQM0pfuc`).
@@ -11,15 +15,15 @@ Tags: **[you]** only you can do it, **[me]** I can do it when you say go.
 - [ ] **[me]** Remove the free-price code path from `create-checkout` and the test card from `Plans.tsx` (optional, once the test is over).
 - [ ] **[you]** Delete the local file `supabase/secrets.env` after loading the secrets (it is git-ignored, but keep no copies of keys).
 - [ ] **[you]** Delete the unused Supabase secrets `RESEND_API_KEY` and `EMAIL_FROM` (Resend is not used).
-- [ ] **[me]** Check no demo or placeholder text is left (search the site for "teste", "exemplo", "youtube").
+- [x] **[me]** Check no demo or placeholder text is left (done: only the "Exemplo:" input hints remain).
 
 ## 2. Security
-- [ ] **[you]** Confirm the leaked `sk_live_…51Uaf…` Stripe key was rolled (Stripe → Developers → API keys). The app must use a restricted `rk_live_` key.
+- [ ] **[you]** Confirm the full-access Stripe secret key that was pasted in chat earlier was rolled (Stripe → Developers → API keys). The app must use a restricted `rk_live_` key.
 - [ ] **[you]** Supabase → Authentication → Providers → Email: "Confirm email" must be **ON**.
 - [ ] **[you]** Turn on 2-Step Verification for Gmail (admin email), GitHub, Vercel, Supabase and Stripe.
-- [ ] **[you]** Supabase password rules: raise the minimum length and turn on leaked-password protection (Authentication → Providers → Email).
-- [ ] **[me]** Re-run the Supabase security advisor and the RLS tests (anonymous read/write blocked) right before launch.
-- [ ] **[me]** Confirm no secret is in the GitHub repo (only public values: Supabase URL, anon key, price IDs).
+- [ ] **[you]** Supabase password rules: raise the minimum length and turn on leaked-password protection (Authentication → Providers → Email). The security advisor still flags it; it may need a paid Supabase plan.
+- [x] **[me]** Re-run the Supabase security advisor and the RLS tests (done: anonymous read, update and delete blocked; all four functions refuse the wrong caller). **Re-run once more right before launch.**
+- [x] **[me]** Confirm no secret is in the GitHub repo (done: none in tracked files or history; `.env` and `secrets.env` are git-ignored).
 - [ ] Optional: authenticator-app code (MFA) for the admin account.
 
 ## 3. Email (the biggest launch risk)
@@ -50,7 +54,8 @@ Supabase's built-in sender allows only a few emails per hour for the **whole pro
 - [ ] **[you]** Settings → Branding: name, logo, colours (checkout page looks like your site).
 - [ ] **[you]** Settings → Billing → Invoices: business name, address and NIF on invoices; decide about IVA (prices currently have no tax added).
 - [ ] **[you]** Settings → Customer emails: turn on receipts/successful-payment emails (Stripe sends them, so clients get a receipt even without our email).
-- [ ] **[me]** Confirm the webhook endpoint stays enabled (it is now) and watch for failed deliveries in the first days.
+- [x] The webhook endpoint is enabled and delivered successfully during testing (and it is idempotent: Stripe retries cannot create duplicate projects).
+- [ ] **[me]** Watch for failed webhook deliveries in the first days after launch.
 - [ ] Decide: should `ESPECIAL15` stay public? Prices already include the 15% discount.
 
 ## 6. Content and legal
@@ -60,7 +65,7 @@ Supabase's built-in sender allows only a few emails per hour for the **whole pro
 - [ ] Add a favicon/social preview image if you want links to look good when shared.
 
 ## 7. Technical
-- [ ] **[me]** Refresh the README (live URL, current flow, secrets list, remove Resend).
+- [x] **[me]** Refresh the README (done).
 - [ ] **[you]** Optional: your own domain (about 10–15 EUR/year) and then update Supabase Site URL and redirect URLs and the `SITE_URL` secret.
 - [ ] **[you]** Supabase free plan limits: projects pause after inactivity. Consider upgrading before real clients.
 - [ ] **[me]** Check Vercel and Supabase function logs for errors after the first real client.
