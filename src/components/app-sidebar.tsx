@@ -29,7 +29,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton render={<Link to="/" />}>
-              <span className="text-base font-semibold">Websites</span>
+              <span className="text-base font-semibold">Selton de Souza</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

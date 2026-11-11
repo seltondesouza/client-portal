@@ -71,7 +71,7 @@ export default function Landing() {
   return (
     <div className="min-h-svh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <span className="font-semibold">Websites</span>
+        <span className="font-semibold">Selton de Souza</span>
         <Link to="/entrar" className={buttonVariants({ variant: 'outline', size: 'sm' })}>Entrar</Link>
       </header>
 
@@ -185,7 +185,7 @@ export default function Landing() {
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6 text-sm text-muted-foreground">
-          <span>Websites</span>
+          <span>Selton de Souza</span>
           <Link to="/entrar" className="underline">Área de cliente</Link>
         </div>
       </footer>
