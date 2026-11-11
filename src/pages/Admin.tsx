@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FIELDS } from '@/lib/briefing'
 import { supabase } from '@/lib/supabase'
-import { PLAN_LABEL, STAGES, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
+import { PLAN_LABEL, STAGES, stageIndex, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
 
 type Row = Project & { profiles: Pick<Profile, 'email'> | null }
 const items = STAGES.map((s) => ({ value: s.key, label: s.label }))
@@ -45,16 +46,18 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState(row.preview_url ?? '')
   const [busy, setBusy] = useState(false)
+  const current = stageIndex(row.stage)
+  const next = STAGES[current + 1]
 
-  async function save() {
+  async function apply(target: Stage) {
     setBusy(true)
-    // The function updates the project, logs the update and emails the client.
+    // The function updates the project and logs the update; the client sees it live on their dashboard.
     const { error } = await supabase.functions.invoke('notify-stage', {
-      body: { project_id: row.id, stage, note, preview_url: preview },
+      body: { project_id: row.id, stage: target, note, preview_url: preview },
     })
     setBusy(false)
     if (error) return toast.error('Erro ao guardar.')
-    toast.success('Guardado e cliente notificado.')
+    toast.success(`Fase: ${stageLabel(target)}. Cliente atualizado.`)
     setNote('')
     onSaved()
   }
@@ -65,32 +68,49 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
         <CardTitle className="text-base">
           {row.profiles?.email}
           <span className="block text-sm font-normal text-muted-foreground">
-            {PLAN_LABEL[row.plan]} · {stageLabel(row.stage)}
+            {PLAN_LABEL[row.plan]} · Fase {current + 1} de {STAGES.length}: {stageLabel(row.stage)}
           </span>
         </CardTitle>
+        <Progress value={((current + 1) / STAGES.length) * 100} />
       </CardHeader>
       <CardContent className="space-y-3">
         <BriefingView briefing={briefing} />
-        <div className="space-y-2">
-          <Label>Fase</Label>
-          <Select items={items} value={stage} onValueChange={(v) => v && setStage(v as Stage)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {items.map((i) => (
-                <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`n-${row.id}`}>Nota</Label>
-          <Textarea id={`n-${row.id}`} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
-          <Input id={`p-${row.id}`} type="url" value={preview} onChange={(e) => setPreview(e.target.value)} />
-        </div>
-        <Button onClick={save} disabled={busy}>{busy ? 'A guardar…' : 'Guardar'}</Button>
+
+        {next ? (
+          <Button size="lg" className="w-full" disabled={busy} onClick={() => apply(next.key)}>
+            {busy ? 'A atualizar…' : `Avançar para ${next.label} →`}
+          </Button>
+        ) : (
+          <p className="rounded-lg border p-3 text-center text-sm font-medium">Projeto online ✓</p>
+        )}
+
+        <details className="rounded-lg border p-3 text-sm">
+          <summary className="cursor-pointer text-muted-foreground">Mais opções (nota, link, escolher fase)</summary>
+          <div className="mt-3 space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor={`n-${row.id}`}>Nota para o cliente (vai com a próxima atualização)</Label>
+              <Textarea id={`n-${row.id}`} value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
+              <Input id={`p-${row.id}`} type="url" value={preview} onChange={(e) => setPreview(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Escolher a fase</Label>
+              <Select items={items} value={stage} onValueChange={(v) => v && setStage(v as Stage)}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {items.map((i) => (
+                    <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" disabled={busy} onClick={() => apply(stage)}>
+              {busy ? 'A guardar…' : 'Guardar'}
+            </Button>
+          </div>
+        </details>
       </CardContent>
     </Card>
   )
