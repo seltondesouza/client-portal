@@ -4,13 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useSession } from '@/hooks/useSession'
 import { eur, PLANS, type Interval } from '@/lib/plans'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
-// Plan cards with the monthly/annual toggle. Used on the homepage and inside the dashboard.
+// Plan cards with the pill Mensal/Anual toggle. Used on the homepage and inside the dashboard.
 // Subscribing needs an account: visitors are sent to create one first.
 export function Plans() {
   const [interval, setInterval] = useState<Interval>('month')
@@ -37,49 +36,73 @@ export function Plans() {
   return (
     <div>
       <div className="flex justify-center">
-        <ToggleGroup variant="outline" value={[interval]} onValueChange={(v) => v[0] && setInterval(v[0] as Interval)}>
-          <ToggleGroupItem value="month">Mensal</ToggleGroupItem>
-          <ToggleGroupItem value="year">Anual</ToggleGroupItem>
-        </ToggleGroup>
+        <div role="group" aria-label="Periodicidade" className="inline-flex rounded-full bg-muted p-[3px]">
+          {(['month', 'year'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={interval === v}
+              onClick={() => setInterval(v)}
+              className={cn(
+                'inline-flex h-9 items-center gap-2 rounded-full px-[18px] text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                interval === v && 'bg-card text-foreground shadow-[0_1px_2px_rgb(10_10_10/0.12)]',
+              )}
+            >
+              {v === 'month' ? 'Mensal' : 'Anual'}
+              {v === 'year' && <Badge variant="live" className="h-[18px] px-1.5 text-[11px]">-15%</Badge>}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {PLANS.map((p) => (
-          <Card key={p.key} className="h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2">
-                {p.name}
-                <Badge>-15% desconto especial</Badge>
-              </CardTitle>
-              <CardDescription>{p.examples}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-5">
+      <div className="mx-auto mt-8 grid max-w-4xl gap-5 md:grid-cols-2">
+        {PLANS.map((p) => {
+          const featured = p.key === 'ecommerce'
+          return (
+            <article
+              key={p.key}
+              className={cn(
+                'flex h-full flex-col gap-6 rounded-xl border bg-card p-7 transition-[transform,box-shadow] duration-300 ease-out-soft hover:-translate-y-1 hover:shadow-lift',
+                featured && 'border-[1.5px] border-foreground',
+              )}
+            >
               <div>
-                <span className="text-muted-foreground line-through">{eur(p.normal[interval])}</span>
-                <p className="text-4xl font-semibold tracking-tight">
+                <Badge variant={featured ? 'live' : 'default'}>{featured ? 'Mais escolhido' : '-15% desconto especial'}</Badge>
+                <h3 className="mt-3 text-xl font-semibold tracking-tight">{p.name}</h3>
+                <p className="text-sm text-muted-foreground">{p.examples}</p>
+              </div>
+              <div>
+                <span className="text-sm tabular-nums text-muted-foreground line-through">{eur(p.normal[interval])}</span>
+                <p className="text-4xl font-semibold tracking-tight tabular-nums">
                   {eur(p.price[interval])}
-                  <span className="text-base font-normal text-muted-foreground">
-                    {interval === 'month' ? ' /mês' : ' /ano'}
-                  </span>
+                  <span className="text-[15px] font-normal tracking-normal text-muted-foreground">{interval === 'month' ? ' /mês' : ' /ano'}</span>
+                </p>
+                <p className="mt-1 min-h-5 text-[13px] tabular-nums text-muted-foreground">
+                  {interval === 'year' ? `Equivale a ${eur(p.price.year / 12)} /mês` : 'Pago mensalmente'}
                 </p>
               </div>
-              <ul className="space-y-2 text-sm">
+              <ul className="grid gap-2.5 text-sm">
                 {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckIcon className="mt-0.5 size-4 shrink-0" />
+                  <li key={f} className="flex items-start gap-2.5">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-live-text" aria-hidden />
                     {f}
                   </li>
                 ))}
               </ul>
-            </CardContent>
-            <CardFooter className="flex-col gap-2">
-              <Button className="w-full" disabled={busy !== null} onClick={() => subscribe(p.priceId[interval], p.key)}>
-                {busy === p.key ? 'A abrir…' : 'Subscrever'}
-              </Button>
-              <p className="text-xs text-muted-foreground">Pagamento seguro com Stripe. Cancele quando quiser.</p>
-            </CardFooter>
-          </Card>
-        ))}
+              <div className="mt-auto grid gap-2 text-center">
+                <Button
+                  variant={featured ? 'default' : 'outline'}
+                  className="h-11 w-full text-[15px]"
+                  disabled={busy !== null}
+                  onClick={() => subscribe(p.priceId[interval], p.key)}
+                >
+                  {busy === p.key ? 'A abrir…' : 'Subscrever'}
+                </Button>
+                <p className="text-xs text-muted-foreground">Pagamento seguro com Stripe. Cancele quando quiser.</p>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </div>
   )

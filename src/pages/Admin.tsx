@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { FIELDS } from '@/lib/briefing'
 import { normalizeUrl } from '@/lib/url'
 import { supabase } from '@/lib/supabase'
+import { StageTimeline } from '@/components/StageTimeline'
 import { PLAN_LABEL, STAGES, stageIndex, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
 
 type Row = Project & { profiles: Pick<Profile, 'email'> | null }
@@ -80,7 +80,7 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
             {PLAN_LABEL[row.plan]} · Fase {current + 1} de {STAGES.length}: {stageLabel(row.stage)}
           </span>
         </CardTitle>
-        <Progress value={((current + 1) / STAGES.length) * 100} />
+        <StageTimeline stage={row.stage} compact />
       </CardHeader>
       <CardContent className="space-y-3">
         <BriefingView briefing={briefing} />

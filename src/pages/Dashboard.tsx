@@ -3,17 +3,17 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/AppLayout'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { BriefingWizard } from '@/components/BriefingWizard'
 import { Plans } from '@/components/Plans'
-import { StageTimeline } from '@/components/StageTimeline'
+import { ProjectStatus } from '@/components/ProjectStatus'
+import { UpdateFeed } from '@/components/UpdateFeed'
 import { useProject } from '@/hooks/useProject'
 import { useSession } from '@/hooks/useSession'
 import { normalizeUrl } from '@/lib/url'
 import { supabase } from '@/lib/supabase'
-import { PLAN_LABEL, STAGES, stageIndex, stageLabel, stageMessage } from '@/lib/stages'
 
 const STATUS: Record<string, string> = {
   active: 'Ativa',
@@ -23,7 +23,11 @@ const STATUS: Record<string, string> = {
   unpaid: 'Por pagar',
 }
 const dateFmt = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long' })
-const dateTimeFmt = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'medium', timeStyle: 'short' })
+const STATUS_TONE: Record<string, 'outline' | 'warn' | 'danger'> = {
+  past_due: 'warn',
+  unpaid: 'warn',
+  canceled: 'danger',
+}
 
 export default function Dashboard() {
   // useSession starts empty on every mount, so wait for it before touching the user.
@@ -33,7 +37,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent({ userId }: { userId: string }) {
-  const { profile, project, updates, briefing, loading } = useProject(userId)
+  const { profile, project, updates, briefing, loading, status, updatedAt, freshIds } = useProject(userId)
   const [busy, setBusy] = useState(false)
   const [params, setParams] = useSearchParams()
   const [confirming, setConfirming] = useState(false)
@@ -119,56 +123,21 @@ function DashboardContent({ userId }: { userId: string }) {
 
           {project && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>{project.stage === 'online' ? 'O seu website está online' : PLAN_LABEL[project.plan]}</CardTitle>
-                  <CardDescription>
-                    {project.stage === 'online'
-                      ? PLAN_LABEL[project.plan]
-                      : `Fase ${stageIndex(project.stage) + 1} de ${STAGES.length}: ${stageLabel(project.stage)}`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {project.stage === 'online' && liveHref && (
-                    <div className="space-y-2">
-                      <a href={liveHref} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg', className: 'w-full' })}>
-                        Abrir o meu website
-                      </a>
-                      <p className="break-all text-center text-sm text-muted-foreground">{liveHref}</p>
-                    </div>
-                  )}
-                  {adminHref && (
-                    <a href={adminHref} target="_blank" rel="noreferrer" className={buttonVariants({ variant: project.stage === 'online' ? 'outline' : 'default', className: 'w-full' })}>
-                      Gerir o meu website (administração)
-                    </a>
-                  )}
-                  <StageTimeline stage={project.stage} />
-                  {project.stage !== 'online' && previewHref && (
-                    <a href={previewHref} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline' })}>
-                      Ver pré-visualização
-                    </a>
-                  )}
-                </CardContent>
-              </Card>
+              <ProjectStatus
+                project={project}
+                status={status}
+                updatedAt={updatedAt}
+                liveHref={liveHref}
+                previewHref={previewHref}
+                adminHref={adminHref}
+              />
 
               <Card>
                 <CardHeader>
                   <CardTitle>Atualizações</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {updates.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Ainda sem atualizações.</p>
-                  ) : (
-                    <ul className="space-y-4">
-                      {updates.map((u, i) => (
-                        <li key={u.id} className="border-l-2 pl-3 text-sm">
-                          {u.stage !== updates[i + 1]?.stage && <p className="font-medium">{stageMessage(u.stage)}</p>}
-                          {u.note && <p>{u.note}</p>}
-                          <p className="text-xs text-muted-foreground">{dateTimeFmt.format(new Date(u.created_at))}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <UpdateFeed updates={updates} freshIds={freshIds} />
                 </CardContent>
               </Card>
 
@@ -184,7 +153,7 @@ function DashboardContent({ userId }: { userId: string }) {
                 <p className="font-medium">Subscrição</p>
                 <p className="text-muted-foreground">
                   {profile?.subscription_status && (
-                    <Badge variant="outline">{STATUS[profile.subscription_status] ?? profile.subscription_status}</Badge>
+                    <Badge variant={STATUS_TONE[profile.subscription_status] ?? 'outline'}>{STATUS[profile.subscription_status] ?? profile.subscription_status}</Badge>
                   )}
                   {profile?.current_period_end && (
                     <span className="ml-2">Próxima cobrança: {dateFmt.format(new Date(profile.current_period_end))}</span>

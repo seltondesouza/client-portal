@@ -46,6 +46,17 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    --color-live: var(--live);
+    --color-live-foreground: var(--live-foreground);
+    --color-live-text: var(--live-text);
+    --color-live-tint: var(--live-tint);
+    --color-warn: var(--warn);
+    --color-warn-tint: var(--warn-tint);
+    --color-danger-tint: var(--danger-tint);
+    --shadow-lift: var(--elev-lift);
+    --shadow-live: var(--elev-live);
+    --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 :root {
@@ -60,12 +71,12 @@
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted-foreground: #6b6b6b;
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.2 0 0);
+    --destructive: #c62828;
     --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
+    --input: #8a8a8a;
     --ring: oklch(0.708 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -73,6 +84,15 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.625rem;
+    --live: #c8f54a;
+    --live-foreground: #0a0a0a;
+    --live-text: #2f6b00;
+    --live-tint: #eef9d2;
+    --warn: #9a5b00;
+    --warn-tint: #fdf1dc;
+    --danger-tint: #fdeaea;
+    --elev-lift: 0 12px 24px -12px rgb(10 10 10 / 0.18);
+    --elev-live: 0 0 0 4px rgb(200 245 74 / 0.55);
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -100,16 +120,23 @@
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
+    --input: #737373;
     --ring: oklch(0.556 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    --live-text: #c8f54a;
+    --live-tint: #1d2609;
+    --warn: #f5b840;
+    --warn-tint: #2b1f08;
+    --danger-tint: #2d1214;
+    --elev-lift: 0 12px 28px -10px rgb(0 0 0 / 0.7);
+    --elev-live: 0 0 0 4px rgb(200 245 74 / 0.25);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary: #e5e5e5;
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -136,6 +163,8 @@
 @keyframes hs-ripple { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.55; } }
 @keyframes hs-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes ping { 0% { transform: scale(0.6); opacity: 0.7; } 80%, 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes feed-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
 
 .hs-el { transform-box: fill-box; transform-origin: center; }
@@ -148,9 +177,11 @@
 .hs-in { animation: hs-in 1.4s ease-out both; }
 .fade-up { animation: fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .nudge { animation: nudge 2.2s ease-in-out infinite; }
+.ping { animation: ping 2s var(--ease-out-soft) infinite; }
+.feed-in { animation: feed-in 0.8s var(--ease-out-soft) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hs-float-a, .hs-float-b, .hs-spin, .hs-spin-rev, .hs-pulse, .hs-ripple, .hs-in, .fade-up, .nudge { animation: none; }
+  .hs-float-a, .hs-float-b, .hs-spin, .hs-spin-rev, .hs-pulse, .hs-ripple, .hs-in, .fade-up, .nudge, .ping, .feed-in { animation: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -162,4 +193,9 @@
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---- Respect reduced motion everywhere: only colour changes remain. ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-property: color, background-color, border-color, fill, stroke !important; }
 }

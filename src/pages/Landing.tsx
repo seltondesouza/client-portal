@@ -1,11 +1,16 @@
 import { Link } from 'react-router-dom'
-import { ActivityIcon, ArrowRightIcon, BanIcon, ServerIcon, ShieldCheckIcon } from 'lucide-react'
+import { ActivityIcon, ArrowDownIcon, ArrowRightIcon, BanIcon, ServerIcon, ShieldCheckIcon } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { buttonVariants } from '@/components/ui/button'
 import { HeroShapes } from '@/components/HeroShapes'
+import { LiveIndicator } from '@/components/LiveIndicator'
 import { Plans } from '@/components/Plans'
 import { Reveal } from '@/components/Reveal'
+import { StageTimeline } from '@/components/StageTimeline'
+import { useCycle } from '@/hooks/useCycle'
 import { useSession } from '@/hooks/useSession'
+import { cn } from '@/lib/utils'
+import { STAGES } from '@/lib/stages'
 import { CONTACT_EMAIL, SITE_NAME } from '@/lib/site'
 
 const TRUST = [
@@ -51,6 +56,68 @@ const FAQ = [
   ],
 ]
 
+const HERO_NOTES = [
+  'Pagamento confirmado.',
+  'Recebemos o seu briefing.',
+  'Enviámos a primeira proposta de design.',
+  'Página de contactos concluída.',
+  'Reveja tudo antes de publicarmos.',
+  'O seu website está online!',
+]
+
+// Example project that advances on its own, so visitors see the product before they buy.
+function HeroExample() {
+  const i = useCycle(STAGES.length, 3200, 2)
+  const stage = STAGES[i].key
+  return (
+    <div className="fade-up relative mx-auto w-full max-w-md rounded-xl border bg-card p-6 text-left shadow-lift" style={{ animationDelay: '0.45s' }} aria-label="Exemplo de projeto a avançar">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Café Aurora · Website Estático</p>
+          <p className="mt-1 text-xl font-semibold tracking-tight">{i === 5 ? 'O seu website está online' : `Fase ${i + 1} de ${STAGES.length}: ${STAGES[i].label}`}</p>
+        </div>
+        <LiveIndicator status="live" />
+      </div>
+      <div className="mt-5"><StageTimeline stage={stage} /></div>
+      <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">{HERO_NOTES[i]}</p>
+    </div>
+  )
+}
+
+// The six steps light up in turn, with the full tracker above them on a slow loop.
+function HowItWorks() {
+  const i = useCycle(STAGES.length, 2400, 0)
+  return (
+    <>
+      <Reveal className="mx-auto mt-10 max-w-3xl rounded-xl border bg-card p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <strong className="font-semibold">{i === 5 ? 'O seu website está online' : `Fase ${i + 1} de ${STAGES.length}: ${STAGES[i].label}`}</strong>
+          <LiveIndicator status="live" />
+        </div>
+        <StageTimeline stage={STAGES[i].key} />
+      </Reveal>
+      <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {STEPS.map(([title, text], n) => {
+          const on = n === i
+          return (
+            <li key={title}>
+              <Reveal delay={(n % 3) * 90} className="h-full">
+                <div className={cn('h-full rounded-xl border bg-background p-6 transition-[transform,border-color] duration-300 ease-out-soft', on && '-translate-y-0.5 border-foreground')}>
+                  <span className={cn('mb-4 flex size-8 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-300', on && 'bg-live text-live-foreground')}>
+                    {n + 1}
+                  </span>
+                  <p className="text-[17px] font-semibold">{title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+                </div>
+              </Reveal>
+            </li>
+          )
+        })}
+      </ol>
+    </>
+  )
+}
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-center text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{children}</p>
 }
@@ -68,19 +135,24 @@ export default function Landing() {
         </header>
 
         <section className="relative flex flex-1 items-center">
-          <HeroShapes />
-          <div className="relative mx-auto max-w-3xl px-4 pb-24 text-center">
-            <h1 className="fade-up text-5xl font-semibold tracking-tight text-balance md:text-7xl">O seu website, sem complicações</h1>
-            <p className="fade-up mx-auto mt-5 max-w-xl text-lg text-muted-foreground text-balance" style={{ animationDelay: '0.15s' }}>
-              Subscreva um plano mensal ou anual e acompanhe cada fase do projeto, do briefing até estar online.
-            </p>
-            <div className="fade-up mt-9" style={{ animationDelay: '0.3s' }}>
-              <a href="#planos" className={buttonVariants({ size: 'lg' })}>
-                Ver planos <ArrowRightIcon />
-              </a>
+          <HeroShapes className="opacity-20" />
+          <div className="relative mx-auto grid w-full max-w-5xl items-center gap-12 px-4 pb-24 pt-8 md:grid-cols-[1.05fr_0.95fr]">
+            <div className="text-center md:text-left">
+              <h1 className="fade-up text-5xl font-semibold tracking-[-0.035em] text-balance md:text-7xl md:leading-none">O seu website, sem complicações</h1>
+              <p className="fade-up mt-5 max-w-xl text-lg text-muted-foreground text-balance max-md:mx-auto" style={{ animationDelay: '0.15s' }}>
+                Subscreva um plano mensal ou anual e acompanhe cada fase do projeto, em direto, do briefing até estar online.
+              </p>
+              <div className="fade-up mt-9" style={{ animationDelay: '0.3s' }}>
+                <a href="#planos" className={buttonVariants({ size: 'lg', className: 'h-12 px-5 text-[15px]' })}>
+                  Ver planos <ArrowRightIcon />
+                </a>
+              </div>
             </div>
+            <HeroExample />
           </div>
-          <a href="#planos" aria-label="Descer para os planos" className="nudge absolute bottom-6 left-1/2 -translate-x-1/2 text-2xl text-muted-foreground">↓</a>
+          <a href="#planos" aria-label="Descer para os planos" className="nudge absolute bottom-6 left-1/2 -translate-x-1/2 text-muted-foreground">
+            <ArrowDownIcon className="size-6" />
+          </a>
         </section>
       </div>
 
@@ -119,21 +191,7 @@ export default function Landing() {
                 Seis passos claros, do pagamento até o website estar online.
               </p>
             </Reveal>
-            <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {STEPS.map(([title, text], i) => (
-                <li key={title}>
-                  <Reveal delay={(i % 3) * 90} className="h-full">
-                    <div className="group h-full rounded-xl border bg-background p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                      <span className="mb-4 flex size-9 items-center justify-center rounded-full bg-foreground text-sm font-medium text-background transition-transform duration-300 group-hover:scale-110">
-                        {i + 1}
-                      </span>
-                      <p className="text-lg font-semibold">{title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-                    </div>
-                  </Reveal>
-                </li>
-              ))}
-            </ol>
+            <HowItWorks />
           </div>
         </section>
 
@@ -158,7 +216,7 @@ export default function Landing() {
           <Reveal className="mx-auto max-w-3xl px-4 py-20 text-center">
             <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">Pronto para ter o seu website?</h2>
             <p className="mx-auto mt-3 max-w-md text-background/70">Escolha um plano e comece hoje. Cancele quando quiser.</p>
-            <a href="#planos" className={buttonVariants({ variant: 'secondary', size: 'lg', className: 'mt-8' })}>
+            <a href="#planos" className={buttonVariants({ variant: 'live', size: 'lg', className: 'mt-8 h-12 px-5 text-[15px]' })}>
               Ver planos <ArrowRightIcon />
             </a>
           </Reveal>

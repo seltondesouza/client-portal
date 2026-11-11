@@ -1,7 +1,7 @@
 // Decorative black-and-white geometry for the hero. Pure SVG, no gradients. Motion lives in index.css.
-export function HeroShapes() {
+export function HeroShapes({ className }: { className?: string }) {
   return (
-    <div aria-hidden className="hs-in pointer-events-none absolute inset-0 overflow-hidden text-foreground">
+    <div aria-hidden className={`hs-in pointer-events-none absolute inset-0 overflow-hidden text-foreground ${className ?? ""}`}>
       <svg className="absolute -left-12 top-16 h-48 w-48 md:-left-20 md:h-80 md:w-80 lg:-left-6 lg:h-[26rem] lg:w-[26rem]" viewBox="0 0 400 400" fill="none">
         <defs>
           <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
