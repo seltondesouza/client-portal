@@ -22,8 +22,13 @@ const dateFmt = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long' })
 const dateTimeFmt = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'medium', timeStyle: 'short' })
 
 export default function Dashboard() {
-  const { session } = useSession()
-  const userId = session!.user.id // ProtectedRoute guarantees a session
+  // useSession starts empty on every mount, so wait for it before touching the user.
+  const { session, loading } = useSession()
+  if (loading || !session) return null
+  return <DashboardContent userId={session.user.id} />
+}
+
+function DashboardContent({ userId }: { userId: string }) {
   const { profile, project, updates, loading } = useProject(userId)
   const [busy, setBusy] = useState(false)
 
