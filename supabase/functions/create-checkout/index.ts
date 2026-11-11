@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
+      adaptive_pricing: { enabled: false }, // always charge in EUR
       subscription_data: { metadata: { plan } },
       metadata: { plan },
       success_url: `${site}/entrar?pago=ok`,
