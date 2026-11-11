@@ -42,16 +42,19 @@ function BriefingView({ briefing }: { briefing?: Briefing }) {
 function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefing; onSaved: () => void }) {
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState(row.preview_url ?? '')
+  const [liveUrl, setLiveUrl] = useState(row.live_url ?? '')
   const [busy, setBusy] = useState(false)
   const current = stageIndex(row.stage)
   const next = STAGES[current + 1]
   const prev = STAGES[current - 1]
+  const lastStep = next?.key === 'online' // the last step needs the final website address
+  const liveOk = /^https?:\/\/\S+\.\S+/.test(liveUrl.trim())
 
   async function apply(target: Stage) {
     setBusy(true)
     // The function updates the project and logs the update; the client sees it live on their dashboard.
     const { error } = await supabase.functions.invoke('notify-stage', {
-      body: { project_id: row.id, stage: target, note, preview_url: preview },
+      body: { project_id: row.id, stage: target, note, preview_url: preview, live_url: liveUrl },
     })
     setBusy(false)
     if (error) return toast.error('Erro ao guardar.')
@@ -75,11 +78,30 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
         <BriefingView briefing={briefing} />
 
         {next ? (
-          <Button size="lg" className="w-full" disabled={busy} onClick={() => apply(next.key)}>
-            {busy ? 'A atualizar…' : `Avançar para ${next.label} →`}
-          </Button>
+          <div className="space-y-2">
+            {lastStep && (
+              <div className="space-y-2">
+                <Label htmlFor={`u-${row.id}`}>Endereço final do website *</Label>
+                <Input
+                  id={`u-${row.id}`}
+                  type="url"
+                  placeholder="https://www.exemplo.pt"
+                  value={liveUrl}
+                  onChange={(e) => setLiveUrl(e.target.value)}
+                />
+              </div>
+            )}
+            <Button size="lg" className="w-full" disabled={busy || (lastStep && !liveOk)} onClick={() => apply(next.key)}>
+              {busy ? 'A atualizar…' : lastStep ? 'Publicar: marcar como online' : `Avançar para ${next.label} →`}
+            </Button>
+          </div>
         ) : (
-          <p className="rounded-lg border p-3 text-center text-sm font-medium">Projeto online ✓</p>
+          <div className="rounded-lg border p-3 text-center text-sm">
+            <p className="font-medium">Projeto online ✓</p>
+            {row.live_url && (
+              <a href={row.live_url} target="_blank" rel="noreferrer" className="break-all underline">{row.live_url}</a>
+            )}
+          </div>
         )}
 
         <details className="rounded-lg border p-3 text-sm">

@@ -12,7 +12,7 @@ import { StageTimeline } from '@/components/StageTimeline'
 import { useProject } from '@/hooks/useProject'
 import { useSession } from '@/hooks/useSession'
 import { supabase } from '@/lib/supabase'
-import { PLAN_LABEL, stageLabel, stageMessage } from '@/lib/stages'
+import { PLAN_LABEL, STAGES, stageIndex, stageLabel, stageMessage } from '@/lib/stages'
 
 const STATUS: Record<string, string> = {
   active: 'Ativa',
@@ -91,29 +91,6 @@ function DashboardContent({ userId }: { userId: string }) {
         <p className="text-sm text-muted-foreground">A carregar…</p>
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscrição</CardTitle>
-              <CardDescription>
-                {profile?.subscription_status ? (
-                  <>
-                    <Badge variant="outline">{STATUS[profile.subscription_status] ?? profile.subscription_status}</Badge>
-                    {profile.current_period_end && (
-                      <span className="ml-2">Próxima cobrança: {dateFmt.format(new Date(profile.current_period_end))}</span>
-                    )}
-                  </>
-                ) : (
-                  'Sem subscrição ativa.'
-                )}
-              </CardDescription>
-            </CardHeader>
-            {profile?.stripe_customer_id && (
-              <CardContent>
-                <Button onClick={openPortal} disabled={busy}>Gerir pagamento</Button>
-              </CardContent>
-            )}
-          </Card>
-
           {!project && confirming && (
             <Card>
               <CardHeader>
@@ -139,39 +116,28 @@ function DashboardContent({ userId }: { userId: string }) {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>{PLAN_LABEL[project.plan]}</CardTitle>
-                  <CardDescription>Fase atual: {stageLabel(project.stage)}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <StageTimeline stage={project.stage} />
-                  {project.preview_url && (
-                    <a
-                      href={project.preview_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={buttonVariants({ variant: 'outline' })}
-                    >
-                      Ver pré-visualização do design
-                    </a>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Briefing</CardTitle>
+                  <CardTitle>{project.stage === 'online' ? 'O seu website está online' : PLAN_LABEL[project.plan]}</CardTitle>
                   <CardDescription>
-                    {briefing?.submitted_at
-                      ? 'Recebemos o seu briefing. Pode editá-lo se precisar.'
-                      : briefing
-                        ? 'Começou o briefing. Continue de onde ficou.'
-                        : 'Responda a algumas perguntas para percebermos o que pretende.'}
+                    {project.stage === 'online'
+                      ? PLAN_LABEL[project.plan]
+                      : `Fase ${stageIndex(project.stage) + 1} de ${STAGES.length}: ${stageLabel(project.stage)}`}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Link to="/briefing" className={buttonVariants({ variant: briefing?.submitted_at ? 'outline' : 'default' })}>
-                    {briefing?.submitted_at ? 'Ver ou editar briefing' : briefing ? 'Continuar briefing' : 'Preencher briefing'}
-                  </Link>
+                <CardContent className="space-y-4">
+                  {project.stage === 'online' && project.live_url && (
+                    <div className="space-y-2">
+                      <a href={project.live_url} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg', className: 'w-full' })}>
+                        Abrir o meu website
+                      </a>
+                      <p className="break-all text-center text-sm text-muted-foreground">{project.live_url}</p>
+                    </div>
+                  )}
+                  <StageTimeline stage={project.stage} />
+                  {project.stage !== 'online' && project.preview_url && (
+                    <a href={project.preview_url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline' })}>
+                      Ver pré-visualização
+                    </a>
+                  )}
                 </CardContent>
               </Card>
 
@@ -195,7 +161,30 @@ function DashboardContent({ userId }: { userId: string }) {
                   )}
                 </CardContent>
               </Card>
+
+              <p className="text-center text-sm text-muted-foreground">
+                <Link to="/briefing" className="underline">Ver ou editar o briefing</Link>
+              </p>
             </>
+          )}
+
+          {(profile?.subscription_status || profile?.stripe_customer_id) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm">
+              <div className="space-y-1">
+                <p className="font-medium">Subscrição</p>
+                <p className="text-muted-foreground">
+                  {profile?.subscription_status && (
+                    <Badge variant="outline">{STATUS[profile.subscription_status] ?? profile.subscription_status}</Badge>
+                  )}
+                  {profile?.current_period_end && (
+                    <span className="ml-2">Próxima cobrança: {dateFmt.format(new Date(profile.current_period_end))}</span>
+                  )}
+                </p>
+              </div>
+              {profile?.stripe_customer_id && (
+                <Button variant="outline" onClick={openPortal} disabled={busy}>Gerir pagamento</Button>
+              )}
+            </div>
           )}
         </>
       )}

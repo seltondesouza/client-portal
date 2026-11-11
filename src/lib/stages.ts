@@ -30,6 +30,7 @@ export type Project = {
   plan: PlanKey
   stage: Stage
   preview_url: string | null
+  live_url: string | null
   created_at: string
 }
 export type Briefing = {

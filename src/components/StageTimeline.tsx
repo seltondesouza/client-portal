@@ -2,31 +2,24 @@ import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { STAGES, stageIndex, type Stage } from '@/lib/stages'
 
+// Compact progress: a bar plus one chip per step (done, current, upcoming).
 export function StageTimeline({ stage }: { stage: Stage }) {
   const current = stageIndex(stage)
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Progress value={((current + 1) / STAGES.length) * 100} />
-      <ol className="space-y-2 text-sm">
+      <ol className="flex flex-wrap gap-2 text-xs">
         {STAGES.map((s, i) => (
           <li
             key={s.key}
             className={cn(
-              'flex items-center gap-3',
+              'rounded-full border px-2.5 py-1',
               i < current && 'text-muted-foreground',
+              i === current && 'border-foreground bg-foreground font-medium text-background',
               i > current && 'text-muted-foreground/50',
-              i === current && 'font-semibold',
             )}
           >
-            <span
-              className={cn(
-                'flex size-6 items-center justify-center rounded-full border text-xs',
-                i <= current && 'border-foreground',
-                i === current && 'bg-foreground text-background',
-              )}
-            >
-              {i < current ? '✓' : i + 1}
-            </span>
+            {i < current ? '✓ ' : ''}
             {s.label}
           </li>
         ))}

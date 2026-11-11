@@ -18,14 +18,16 @@ Deno.serve(async (req) => {
     return json({ error: 'forbidden' }, 403)
   }
 
-  const { project_id, stage, note, preview_url } = await req.json()
+  const { project_id, stage, note, preview_url, live_url } = await req.json()
   if (!STAGES[stage]) return json({ error: 'invalid stage' }, 400)
+  // The last stage needs the final website address.
+  if (stage === 'online' && !/^https?:\/\/\S+\.\S+/.test(live_url ?? '')) return json({ error: 'live_url required' }, 400)
 
   const { data: project, error } = await admin
     .from('projects')
-    .update({ stage, preview_url: preview_url || null })
+    .update({ stage, preview_url: preview_url || null, ...(live_url ? { live_url } : {}) })
     .eq('id', project_id)
-    .select('preview_url, profiles(email)')
+    .select('preview_url, live_url, profiles(email)')
     .single()
   if (error || !project) return json({ error: 'project not found' }, 404)
 
@@ -34,7 +36,7 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   const to = (project as any).profiles?.email as string | undefined
   if (to) {
-    await sendEmail(to, stage === 'online' ? templates.live(project.preview_url) : templates.stage(STAGES[stage], note))
+    await sendEmail(to, stage === 'online' ? templates.live(project.live_url) : templates.stage(STAGES[stage], note))
   }
   return json({ ok: true })
 })
