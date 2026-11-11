@@ -31,18 +31,20 @@ Deno.serve(async (req) => {
     return json({ error: 'forbidden' }, 403)
   }
 
-  const { project_id, stage, note, preview_url, live_url } = await req.json()
+  const { project_id, stage, note, preview_url, live_url, admin_url } = await req.json()
   if (!STAGES[stage]) return json({ error: 'invalid stage' }, 400)
   const preview = normalizeUrl(preview_url)
   const live = normalizeUrl(live_url)
+  const adminLink = normalizeUrl(admin_url) // optional link to the client's own website admin panel
   if (preview_url && !preview) return json({ error: 'invalid preview_url' }, 400)
   if (live_url && !live) return json({ error: 'invalid live_url' }, 400)
+  if (admin_url && !adminLink) return json({ error: 'invalid admin_url' }, 400)
   // The last stage needs the final website address.
   if (stage === 'online' && !live) return json({ error: 'live_url required' }, 400)
 
   const { data: project, error } = await admin
     .from('projects')
-    .update({ stage, preview_url: preview, ...(live ? { live_url: live } : {}) })
+    .update({ stage, preview_url: preview, admin_url: adminLink, ...(live ? { live_url: live } : {}) })
     .eq('id', project_id)
     .select('preview_url, live_url, profiles(email)')
     .single()

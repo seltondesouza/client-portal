@@ -42,6 +42,7 @@ function DashboardContent({ userId }: { userId: string }) {
   // Links are always shown as absolute addresses, never as paths on this site.
   const liveHref = normalizeUrl(project?.live_url)
   const previewHref = normalizeUrl(project?.preview_url)
+  const adminHref = normalizeUrl(project?.admin_url)
   // Clients with a project must finish the briefing: it opens by itself and can't be closed until it's sent.
   const mustFillBriefing = !loading && !!project && !briefing?.submitted_at && !briefingSent
 
@@ -135,6 +136,11 @@ function DashboardContent({ userId }: { userId: string }) {
                       </a>
                       <p className="break-all text-center text-sm text-muted-foreground">{liveHref}</p>
                     </div>
+                  )}
+                  {adminHref && (
+                    <a href={adminHref} target="_blank" rel="noreferrer" className={buttonVariants({ variant: project.stage === 'online' ? 'outline' : 'default', className: 'w-full' })}>
+                      Gerir o meu website (administração)
+                    </a>
                   )}
                   <StageTimeline stage={project.stage} />
                   {project.stage !== 'online' && previewHref && (

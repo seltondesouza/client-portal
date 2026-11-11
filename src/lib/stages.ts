@@ -31,6 +31,7 @@ export type Project = {
   stage: Stage
   preview_url: string | null
   live_url: string | null
+  admin_url: string | null
   created_at: string
 }
 export type Briefing = {

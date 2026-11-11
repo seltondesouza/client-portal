@@ -44,6 +44,7 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState(row.preview_url ?? '')
   const [liveUrl, setLiveUrl] = useState(row.live_url ?? '')
+  const [adminUrl, setAdminUrl] = useState(row.admin_url ?? '')
   const [busy, setBusy] = useState(false)
   const current = stageIndex(row.stage)
   const next = STAGES[current + 1]
@@ -54,12 +55,14 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
   async function apply(target: Stage) {
     const previewClean = normalizeUrl(preview)
     const liveClean = normalizeUrl(liveUrl)
+    const adminClean = normalizeUrl(adminUrl)
     if (preview.trim() && !previewClean) return toast.error('Link de pré-visualização inválido. Exemplo: www.exemplo.pt')
     if (liveUrl.trim() && !liveClean) return toast.error('Endereço final inválido. Exemplo: www.exemplo.pt')
+    if (adminUrl.trim() && !adminClean) return toast.error('Link de administração inválido. Exemplo: www.exemplo.pt/admin')
     setBusy(true)
     // The function updates the project and logs the update; the client sees it live on their dashboard.
     const { error } = await supabase.functions.invoke('notify-stage', {
-      body: { project_id: row.id, stage: target, note, preview_url: previewClean ?? '', live_url: liveClean ?? '' },
+      body: { project_id: row.id, stage: target, note, preview_url: previewClean ?? '', live_url: liveClean ?? '', admin_url: adminClean ?? '' },
     })
     setBusy(false)
     if (error) return toast.error('Erro ao guardar.')
@@ -120,11 +123,16 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
               <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
               <Input id={`p-${row.id}`} inputMode="url" placeholder="www.exemplo.pt" value={preview} onChange={(e) => setPreview(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor={`a-${row.id}`}>Link de administração do website (opcional)</Label>
+              <Input id={`a-${row.id}`} inputMode="url" placeholder="www.exemplo.pt/admin" value={adminUrl} onChange={(e) => setAdminUrl(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Se preencher, o cliente vê um botão no painel para abrir a administração do site dela.</p>
+            </div>
             <p className="text-xs text-muted-foreground">
               A nota e o link seguem com o próximo passo, ou pode enviá-los já, sem mudar de fase.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={busy || (!note && (normalizeUrl(preview) ?? '') === (row.preview_url ?? '') && (normalizeUrl(liveUrl) ?? '') === (row.live_url ?? ''))} onClick={() => apply(row.stage)}>
+              <Button variant="outline" disabled={busy || (!note && (normalizeUrl(preview) ?? '') === (row.preview_url ?? '') && (normalizeUrl(liveUrl) ?? '') === (row.live_url ?? '') && (normalizeUrl(adminUrl) ?? '') === (row.admin_url ?? ''))} onClick={() => apply(row.stage)}>
                 Enviar nota / link
               </Button>
               {prev && (
