@@ -16,7 +16,7 @@ function normalizeUrl(input?: string | null): string | null {
   if (!v) return null
   try {
     const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`)
-    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.') || /\s/.test(v)) return null
+    if (!/^https?:$/.test(u.protocol) || !/^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(u.hostname) || /\s/.test(v)) return null
     return u.toString()
   } catch {
     return null
