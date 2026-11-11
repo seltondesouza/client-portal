@@ -7,15 +7,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useSession } from '@/hooks/useSession'
 import { eur, PLANS, type Interval } from '@/lib/plans'
-import { supabase } from '@/lib/supabase'
+import { ADMIN_EMAIL, supabase } from '@/lib/supabase'
 
 // Plan cards with the monthly/annual toggle. Used on the homepage and inside the dashboard.
 // Subscribing needs an account: visitors are sent to create one first.
+// a+tag@gmail.com counts as a@gmail.com (same inbox).
+const base = (e: string) => e.toLowerCase().replace(/\+[^@]*@/, '@')
+const TEST_PRICE = import.meta.env.VITE_STRIPE_PRICE_TEST as string | undefined
+
 export function Plans() {
   const [interval, setInterval] = useState<Interval>('month')
   const [busy, setBusy] = useState<string | null>(null)
   const { session } = useSession()
   const navigate = useNavigate()
+  const email = session?.user.email
+  const showTest = !!TEST_PRICE && !!email && !!ADMIN_EMAIL && base(email) === base(ADMIN_EMAIL)
 
   async function subscribe(priceId: string, key: string) {
     if (!session) {
@@ -41,6 +47,23 @@ export function Plans() {
           <ToggleGroupItem value="year">Anual</ToggleGroupItem>
         </ToggleGroup>
       </div>
+
+      {showTest && (
+        <Card className="mt-8 border-dashed">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between gap-2">
+              Plano de teste (gratuito)
+              <Badge variant="outline">Só visível para si</Badge>
+            </CardTitle>
+            <CardDescription>0,00 € /mês, sem cartão. Serve para testar o fluxo; será removido.</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button variant="outline" disabled={busy !== null} onClick={() => subscribe(TEST_PRICE!, 'teste')}>
+              {busy === 'teste' ? 'A abrir…' : 'Subscrever teste'}
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {PLANS.map((p) => (

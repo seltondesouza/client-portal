@@ -13,6 +13,11 @@ Deno.serve(async (req) => {
     const plan = price.metadata.plan // 'estatico' | 'ecommerce', set in Stripe (see README)
     if (!price.active || !['estatico', 'ecommerce'].includes(plan)) return json({ error: 'invalid price' }, 400)
 
+    // A free price (used for testing) is only allowed for the admin's own mailbox (a+tag@ counts as the same).
+    const free = price.unit_amount === 0
+    const base = (e: string) => e.toLowerCase().replace(/\+[^@]*@/, '@')
+    if (free && base(user.email) !== base(Deno.env.get('ADMIN_EMAIL') ?? '')) return json({ error: 'invalid price' }, 400)
+
     const { data: profile } = await admin
       .from('profiles')
       .select('stripe_customer_id, subscription_status')
@@ -28,6 +33,7 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
       adaptive_pricing: { enabled: false }, // always charge in EUR
+      ...(free ? { payment_method_collection: 'if_required' as const } : {}), // free test price: no card needed
       client_reference_id: user.id,
       ...(profile?.stripe_customer_id ? { customer: profile.stripe_customer_id } : { customer_email: user.email }),
       subscription_data: { metadata: { plan } },
