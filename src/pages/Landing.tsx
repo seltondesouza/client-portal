@@ -52,26 +52,31 @@ const FAQ = [
 export default function Landing() {
   const { session } = useSession()
   return (
-    <div className="min-h-svh">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <span className="font-semibold">Selton de Souza</span>
-        <Link to={session ? '/painel' : '/entrar'} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-          {session ? 'O meu painel' : 'Entrar'}
-        </Link>
-      </header>
+    <div>
+      <div className="relative flex min-h-svh flex-col">
+        <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
+          <span className="font-semibold">{SITE_NAME}</span>
+          <Link to={session ? '/painel' : '/entrar'} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            {session ? 'O meu painel' : 'Entrar'}
+          </Link>
+        </header>
 
-      <main>
-        <section className="relative">
+        <section className="relative flex flex-1 items-center">
           <HeroShapes />
-          <div className="relative mx-auto max-w-3xl px-4 py-28 text-center md:py-28">
-            <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-5xl">O seu website, sem complicações</h1>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-balance">
+          <div className="relative mx-auto max-w-3xl px-4 pb-24 text-center">
+            <h1 className="fade-up text-5xl font-semibold tracking-tight text-balance md:text-7xl">O seu website, sem complicações</h1>
+            <p className="fade-up mx-auto mt-5 max-w-xl text-lg text-muted-foreground text-balance" style={{ animationDelay: '0.15s' }}>
               Subscreva um plano mensal ou anual e acompanhe cada fase do projeto, do briefing até estar online.
             </p>
-            <a href="#planos" className={buttonVariants({ size: 'lg', className: 'mt-8' })}>Ver planos</a>
+            <div className="fade-up mt-9" style={{ animationDelay: '0.3s' }}>
+              <a href="#planos" className={buttonVariants({ size: 'lg' })}>Ver planos</a>
+            </div>
           </div>
+          <a href="#planos" aria-label="Descer para os planos" className="nudge absolute bottom-6 left-1/2 -translate-x-1/2 text-2xl text-muted-foreground">↓</a>
         </section>
+      </div>
 
+      <main>
         <section className="border-y bg-muted/40">
           <ul className="mx-auto grid max-w-5xl grid-cols-2 gap-x-4 gap-y-3 px-4 py-5 text-sm md:grid-cols-4">
             {TRUST.map((t) => (

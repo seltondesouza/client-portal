@@ -128,3 +128,31 @@
     @apply font-sans;
     }
 }
+/* ---- Hero motion (black and white, subtle). Disabled for reduced-motion users. ---- */
+@keyframes hs-float-a { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-16px) rotate(4deg); } }
+@keyframes hs-float-b { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(14px) rotate(-5deg); } }
+@keyframes hs-spin { to { transform: rotate(360deg); } }
+@keyframes hs-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes hs-ripple { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.55; } }
+@keyframes hs-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+
+.hs-el { transform-box: fill-box; transform-origin: center; }
+.hs-float-a { animation: hs-float-a 9s ease-in-out infinite; }
+.hs-float-b { animation: hs-float-b 11s ease-in-out infinite; }
+.hs-spin { animation: hs-spin 48s linear infinite; }
+.hs-spin-rev { animation: hs-spin 70s linear infinite reverse; }
+.hs-pulse { animation: hs-pulse 6s ease-in-out infinite; }
+.hs-ripple { animation: hs-ripple 7s ease-in-out infinite; }
+.hs-in { animation: hs-in 1.4s ease-out both; }
+.fade-up { animation: fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.nudge { animation: nudge 2.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-float-a, .hs-float-b, .hs-spin, .hs-spin-rev, .hs-pulse, .hs-ripple, .hs-in, .fade-up, .nudge { animation: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
