@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,9 +22,66 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState<null | 'confirmar' | 'recuperar'>(null)
   const [busy, setBusy] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
   const { session, loading } = useSession()
+  const navigate = useNavigate()
+
+  // After sign-up, wait for the email to be confirmed and continue by ourselves: no refresh, no extra click.
+  // The link may be opened in this browser (shared session) or on another device (so we also try to sign in).
+  useEffect(() => {
+    if (sent !== 'confirmar') return
+    let stopped = false
+    let ticks = 0
+    async function check(tryLogin: boolean) {
+      if (stopped) return
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        stopped = true
+        navigate('/painel', { replace: true })
+        return
+      }
+      if (tryLogin) {
+        const { data: signed } = await supabase.auth.signInWithPassword({ email, password })
+        if (signed.session && !stopped) {
+          stopped = true
+          navigate('/painel', { replace: true })
+        }
+      }
+    }
+    const id = setInterval(() => {
+      ticks++
+      if (ticks > 200) return clearInterval(id) // stop after about 10 minutes
+      check(ticks % 3 === 0) // cheap local check every 3 s, a real sign-in attempt every 9 s
+    }, 3000)
+    const onFocus = () => check(true) // coming back to this tab: check right away
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      stopped = true
+      clearInterval(id)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [sent, email, password, navigate])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown(cooldown - 1), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
 
   if (!loading && session) return <Navigate to="/painel" replace />
+
+  async function resend() {
+    setCooldown(60)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/painel` },
+    })
+    if (error) toast.error('Não foi possível reenviar. Tente novamente dentro de alguns minutos.')
+    else toast.success('Email reenviado.')
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,7 +116,7 @@ export default function Login() {
 
   const description = sent
     ? sent === 'confirmar'
-      ? 'Enviámos um email de confirmação. Clique no link para ativar a conta e entrar.'
+      ? 'Enviámos um email de confirmação para o seu endereço.'
       : 'Se o email existir, enviámos um link para definir uma nova palavra-passe.'
     : mode === 'criar'
       ? 'Crie a sua conta para escolher um plano e acompanhar o seu projeto.'
@@ -74,11 +131,35 @@ export default function Login() {
       <Link to="/" className="text-center text-lg font-semibold">{SITE_NAME}</Link>
       <Card className="w-full shadow-lg">
         <CardHeader>
-          <CardTitle>{TITLE[mode]}</CardTitle>
+          <CardTitle>{sent === 'confirmar' ? 'Confirme o seu email' : TITLE[mode]}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {sent ? (
+          {sent === 'confirmar' ? (
+            <div className="space-y-4 text-center text-sm">
+              <div className="flex items-center justify-center gap-3 rounded-lg border p-4">
+                <span className="size-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" aria-hidden />
+                <span>Abra o email e clique no link. Esta página entra sozinha.</span>
+              </div>
+              <p className="text-muted-foreground">
+                Enviado para <span className="font-medium text-foreground">{email}</span>. Verifique também o spam.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" disabled={cooldown > 0} onClick={resend}>
+                  {cooldown > 0 ? `Reenviar email (${cooldown}s)` : 'Reenviar email'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSent(null)
+                    setMode('criar')
+                  }}
+                >
+                  Usar outro email
+                </Button>
+              </div>
+            </div>
+          ) : sent ? (
             <Button
               variant="outline"
               className="w-full"
