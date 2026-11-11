@@ -6,14 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FIELDS } from '@/lib/briefing'
 import { supabase } from '@/lib/supabase'
 import { PLAN_LABEL, STAGES, stageIndex, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
 
 type Row = Project & { profiles: Pick<Profile, 'email'> | null }
-const items = STAGES.map((s) => ({ value: s.key, label: s.label }))
 
 function BriefingView({ briefing }: { briefing?: Briefing }) {
   if (!briefing) return <p className="text-sm text-muted-foreground">Briefing: ainda não iniciado.</p>
@@ -42,12 +40,12 @@ function BriefingView({ briefing }: { briefing?: Briefing }) {
 }
 
 function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefing; onSaved: () => void }) {
-  const [stage, setStage] = useState<Stage>(row.stage)
   const [note, setNote] = useState('')
   const [preview, setPreview] = useState(row.preview_url ?? '')
   const [busy, setBusy] = useState(false)
   const current = stageIndex(row.stage)
   const next = STAGES[current + 1]
+  const prev = STAGES[current - 1]
 
   async function apply(target: Stage) {
     setBusy(true)
@@ -57,7 +55,7 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
     })
     setBusy(false)
     if (error) return toast.error('Erro ao guardar.')
-    toast.success(`Fase: ${stageLabel(target)}. Cliente atualizado.`)
+    toast.success(target === row.stage ? 'Enviado ao cliente.' : `Fase: ${stageLabel(target)}. Cliente atualizado.`)
     setNote('')
     onSaved()
   }
@@ -85,30 +83,29 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
         )}
 
         <details className="rounded-lg border p-3 text-sm">
-          <summary className="cursor-pointer text-muted-foreground">Mais opções (nota, link, escolher fase)</summary>
+          <summary className="cursor-pointer text-muted-foreground">Mais opções (nota, link, voltar)</summary>
           <div className="mt-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor={`n-${row.id}`}>Nota para o cliente (vai com a próxima atualização)</Label>
+              <Label htmlFor={`n-${row.id}`}>Nota para o cliente</Label>
               <Textarea id={`n-${row.id}`} value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
               <Input id={`p-${row.id}`} type="url" value={preview} onChange={(e) => setPreview(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Escolher a fase</Label>
-              <Select items={items} value={stage} onValueChange={(v) => v && setStage(v as Stage)}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {items.map((i) => (
-                    <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <p className="text-xs text-muted-foreground">
+              A nota e o link seguem com o próximo passo, ou pode enviá-los já, sem mudar de fase.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={busy || (!note && preview === (row.preview_url ?? ''))} onClick={() => apply(row.stage)}>
+                Enviar nota / link
+              </Button>
+              {prev && (
+                <Button variant="ghost" disabled={busy} onClick={() => apply(prev.key)}>
+                  ← Voltar para {prev.label}
+                </Button>
+              )}
             </div>
-            <Button variant="outline" disabled={busy} onClick={() => apply(stage)}>
-              {busy ? 'A guardar…' : 'Guardar'}
-            </Button>
           </div>
         </details>
       </CardContent>

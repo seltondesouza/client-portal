@@ -184,9 +184,9 @@ function DashboardContent({ userId }: { userId: string }) {
                     <p className="text-sm text-muted-foreground">Ainda sem atualizações.</p>
                   ) : (
                     <ul className="space-y-4">
-                      {updates.map((u) => (
+                      {updates.map((u, i) => (
                         <li key={u.id} className="border-l-2 pl-3 text-sm">
-                          <p className="font-medium">{stageMessage(u.stage)}</p>
+                          {u.stage !== updates[i + 1]?.stage && <p className="font-medium">{stageMessage(u.stage)}</p>}
                           {u.note && <p>{u.note}</p>}
                           <p className="text-xs text-muted-foreground">{dateTimeFmt.format(new Date(u.created_at))}</p>
                         </li>
