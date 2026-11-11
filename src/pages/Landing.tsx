@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { HeroShapes } from '@/components/HeroShapes'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { eur, PLANS, type Interval } from '@/lib/plans'
 import { supabase } from '@/lib/supabase'
@@ -75,12 +76,15 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="mx-auto max-w-3xl px-4 pt-12 pb-10 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-balance">O seu website, sem complicações</h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-balance">
-            Subscreva um plano mensal ou anual e acompanhe cada fase do projeto, do briefing até estar online.
-          </p>
-          <a href="#planos" className={buttonVariants({ size: 'lg', className: 'mt-6' })}>Ver planos</a>
+        <section className="relative">
+          <HeroShapes />
+          <div className="relative mx-auto max-w-3xl px-4 py-28 text-center md:py-28">
+            <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-5xl">O seu website, sem complicações</h1>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-balance">
+              Subscreva um plano mensal ou anual e acompanhe cada fase do projeto, do briefing até estar online.
+            </p>
+            <a href="#planos" className={buttonVariants({ size: 'lg', className: 'mt-8' })}>Ver planos</a>
+          </div>
         </section>
 
         <section className="border-y bg-muted/40">
