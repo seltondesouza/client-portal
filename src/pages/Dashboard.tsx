@@ -11,6 +11,7 @@ import { Plans } from '@/components/Plans'
 import { StageTimeline } from '@/components/StageTimeline'
 import { useProject } from '@/hooks/useProject'
 import { useSession } from '@/hooks/useSession'
+import { normalizeUrl } from '@/lib/url'
 import { supabase } from '@/lib/supabase'
 import { PLAN_LABEL, STAGES, stageIndex, stageLabel, stageMessage } from '@/lib/stages'
 
@@ -38,6 +39,9 @@ function DashboardContent({ userId }: { userId: string }) {
   const [confirming, setConfirming] = useState(false)
   const [briefingSent, setBriefingSent] = useState(false)
   const navigate = useNavigate()
+  // Links are always shown as absolute addresses, never as paths on this site.
+  const liveHref = normalizeUrl(project?.live_url)
+  const previewHref = normalizeUrl(project?.preview_url)
   // Clients with a project must finish the briefing: it opens by itself and can't be closed until it's sent.
   const mustFillBriefing = !loading && !!project && !briefing?.submitted_at && !briefingSent
 
@@ -124,17 +128,17 @@ function DashboardContent({ userId }: { userId: string }) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {project.stage === 'online' && project.live_url && (
+                  {project.stage === 'online' && liveHref && (
                     <div className="space-y-2">
-                      <a href={project.live_url} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg', className: 'w-full' })}>
+                      <a href={liveHref} target="_blank" rel="noreferrer" className={buttonVariants({ size: 'lg', className: 'w-full' })}>
                         Abrir o meu website
                       </a>
-                      <p className="break-all text-center text-sm text-muted-foreground">{project.live_url}</p>
+                      <p className="break-all text-center text-sm text-muted-foreground">{liveHref}</p>
                     </div>
                   )}
                   <StageTimeline stage={project.stage} />
-                  {project.stage !== 'online' && project.preview_url && (
-                    <a href={project.preview_url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline' })}>
+                  {project.stage !== 'online' && previewHref && (
+                    <a href={previewHref} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline' })}>
                       Ver pré-visualização
                     </a>
                   )}

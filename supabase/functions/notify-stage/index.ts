@@ -10,6 +10,19 @@ const STAGES: Record<string, string> = {
   online: 'Online',
 }
 
+// "www.exemplo.pt" or "https://www.exemplo.pt" -> a clean http(s) address, or null when invalid.
+function normalizeUrl(input?: string | null): string | null {
+  const v = (input ?? '').trim()
+  if (!v) return null
+  try {
+    const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`)
+    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.') || /\s/.test(v)) return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
 // Admin only: updates the project, logs the update (Realtime pushes it to the client) and emails the client.
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -20,12 +33,16 @@ Deno.serve(async (req) => {
 
   const { project_id, stage, note, preview_url, live_url } = await req.json()
   if (!STAGES[stage]) return json({ error: 'invalid stage' }, 400)
+  const preview = normalizeUrl(preview_url)
+  const live = normalizeUrl(live_url)
+  if (preview_url && !preview) return json({ error: 'invalid preview_url' }, 400)
+  if (live_url && !live) return json({ error: 'invalid live_url' }, 400)
   // The last stage needs the final website address.
-  if (stage === 'online' && !/^https?:\/\/\S+\.\S+/.test(live_url ?? '')) return json({ error: 'live_url required' }, 400)
+  if (stage === 'online' && !live) return json({ error: 'live_url required' }, 400)
 
   const { data: project, error } = await admin
     .from('projects')
-    .update({ stage, preview_url: preview_url || null, ...(live_url ? { live_url } : {}) })
+    .update({ stage, preview_url: preview, ...(live ? { live_url: live } : {}) })
     .eq('id', project_id)
     .select('preview_url, live_url, profiles(email)')
     .single()

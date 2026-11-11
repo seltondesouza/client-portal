@@ -46,16 +46,20 @@ Deno.serve(async (req) => {
       if (s.mode === 'subscription' && email) {
         const userId = s.client_reference_id ?? (await findOrCreateUser(email)) // the account that paid
         await admin.from('profiles').update({ stripe_customer_id: s.customer as string }).eq('id', userId)
+        // Idempotent: one project per Checkout Session. A retried event finds the row and skips the side effects.
         const { data: project } = await admin
           .from('projects')
-          .insert({ client_id: userId, plan: s.metadata?.plan, stage: 'pagamento' })
+          .upsert(
+            { client_id: userId, plan: s.metadata?.plan, stage: 'pagamento', stripe_session_id: s.id },
+            { onConflict: 'stripe_session_id', ignoreDuplicates: true },
+          )
           .select('id')
-          .single()
+          .maybeSingle()
         if (project) {
           await admin.from('project_updates').insert({ project_id: project.id, stage: 'pagamento', note: 'Pagamento confirmado.' })
         }
         await syncSubscription(await stripe.subscriptions.retrieve(s.subscription as string))
-        await sendEmail(email, templates.welcome())
+        if (project) await sendEmail(email, templates.welcome()) // only on first delivery
       }
     } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
       await syncSubscription(event.data.object as Stripe.Subscription)

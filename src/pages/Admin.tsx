@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
 import { FIELDS } from '@/lib/briefing'
+import { normalizeUrl } from '@/lib/url'
 import { supabase } from '@/lib/supabase'
 import { PLAN_LABEL, STAGES, stageIndex, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
 
@@ -48,13 +49,17 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
   const next = STAGES[current + 1]
   const prev = STAGES[current - 1]
   const lastStep = next?.key === 'online' // the last step needs the final website address
-  const liveOk = /^https?:\/\/\S+\.\S+/.test(liveUrl.trim())
+  const liveOk = !!normalizeUrl(liveUrl)
 
   async function apply(target: Stage) {
+    const previewClean = normalizeUrl(preview)
+    const liveClean = normalizeUrl(liveUrl)
+    if (preview.trim() && !previewClean) return toast.error('Link de pré-visualização inválido. Exemplo: www.exemplo.pt')
+    if (liveUrl.trim() && !liveClean) return toast.error('Endereço final inválido. Exemplo: www.exemplo.pt')
     setBusy(true)
     // The function updates the project and logs the update; the client sees it live on their dashboard.
     const { error } = await supabase.functions.invoke('notify-stage', {
-      body: { project_id: row.id, stage: target, note, preview_url: preview, live_url: liveUrl },
+      body: { project_id: row.id, stage: target, note, preview_url: previewClean ?? '', live_url: liveClean ?? '' },
     })
     setBusy(false)
     if (error) return toast.error('Erro ao guardar.')
@@ -84,8 +89,8 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
                 <Label htmlFor={`u-${row.id}`}>Endereço final do website *</Label>
                 <Input
                   id={`u-${row.id}`}
-                  type="url"
-                  placeholder="https://www.exemplo.pt"
+                  inputMode="url"
+                  placeholder="www.exemplo.pt"
                   value={liveUrl}
                   onChange={(e) => setLiveUrl(e.target.value)}
                 />
@@ -98,8 +103,8 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
         ) : (
           <div className="rounded-lg border p-3 text-center text-sm">
             <p className="font-medium">Projeto online ✓</p>
-            {row.live_url && (
-              <a href={row.live_url} target="_blank" rel="noreferrer" className="break-all underline">{row.live_url}</a>
+            {normalizeUrl(row.live_url) && (
+              <a href={normalizeUrl(row.live_url)!} target="_blank" rel="noreferrer" className="break-all underline">{normalizeUrl(row.live_url)}</a>
             )}
           </div>
         )}
@@ -113,13 +118,13 @@ function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefi
             </div>
             <div className="space-y-2">
               <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
-              <Input id={`p-${row.id}`} type="url" value={preview} onChange={(e) => setPreview(e.target.value)} />
+              <Input id={`p-${row.id}`} inputMode="url" placeholder="www.exemplo.pt" value={preview} onChange={(e) => setPreview(e.target.value)} />
             </div>
             <p className="text-xs text-muted-foreground">
               A nota e o link seguem com o próximo passo, ou pode enviá-los já, sem mudar de fase.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={busy || (!note && preview === (row.preview_url ?? ''))} onClick={() => apply(row.stage)}>
+              <Button variant="outline" disabled={busy || (!note && (normalizeUrl(preview) ?? '') === (row.preview_url ?? '') && (normalizeUrl(liveUrl) ?? '') === (row.live_url ?? ''))} onClick={() => apply(row.stage)}>
                 Enviar nota / link
               </Button>
               {prev && (
