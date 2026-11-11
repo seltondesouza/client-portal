@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/AppLayout'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { BriefingWizard } from '@/components/BriefingWizard'
 import { Plans } from '@/components/Plans'
 import { StageTimeline } from '@/components/StageTimeline'
 import { useProject } from '@/hooks/useProject'
@@ -34,6 +36,10 @@ function DashboardContent({ userId }: { userId: string }) {
   const [busy, setBusy] = useState(false)
   const [params, setParams] = useSearchParams()
   const [confirming, setConfirming] = useState(false)
+  const [briefingSent, setBriefingSent] = useState(false)
+  const navigate = useNavigate()
+  // Clients with a project must finish the briefing: it opens by itself and can't be closed until it's sent.
+  const mustFillBriefing = !loading && !!project && !briefing?.submitted_at && !briefingSent
 
   // Back from Stripe Checkout: the webhook needs a moment to create the project, so don't show the plans again.
   useEffect(() => {
@@ -57,8 +63,29 @@ function DashboardContent({ userId }: { userId: string }) {
     window.location.href = data.url
   }
 
+  async function logout() {
+    await supabase.auth.signOut()
+    navigate('/')
+  }
+
   return (
     <AppLayout title="O meu projeto">
+      {project && (
+        <Dialog open={mustFillBriefing} onOpenChange={() => {}}>
+          <DialogContent showCloseButton={false} className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Vamos começar o seu projeto</DialogTitle>
+              <DialogDescription>
+                Responda a estas perguntas para percebermos o que pretende. Leva cerca de 3 minutos e as respostas ficam guardadas a cada passo.
+              </DialogDescription>
+            </DialogHeader>
+            <BriefingWizard project={project} initial={briefing?.answers ?? {}} onSubmitted={() => setBriefingSent(true)} />
+            <button type="button" onClick={logout} className="self-center text-xs text-muted-foreground underline">
+              Terminar sessão
+            </button>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">A carregar…</p>
