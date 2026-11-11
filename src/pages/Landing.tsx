@@ -3,6 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { buttonVariants } from '@/components/ui/button'
 import { HeroShapes } from '@/components/HeroShapes'
 import { Plans } from '@/components/Plans'
+import { useSession } from '@/hooks/useSession'
 
 const TRUST = [
   'Pagamento seguro com Stripe',
@@ -48,11 +49,14 @@ const FAQ = [
 ]
 
 export default function Landing() {
+  const { session } = useSession()
   return (
     <div className="min-h-svh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
         <span className="font-semibold">Selton de Souza</span>
-        <Link to="/entrar" className={buttonVariants({ variant: 'outline', size: 'sm' })}>Entrar</Link>
+        <Link to={session ? '/painel' : '/entrar'} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          {session ? 'O meu painel' : 'Entrar'}
+        </Link>
       </header>
 
       <main>

@@ -25,7 +25,7 @@ const dateTimeFmt = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'medium', time
 export default function Dashboard() {
   // useSession starts empty on every mount, so wait for it before touching the user.
   const { session, loading } = useSession()
-  if (loading || !session) return null
+  if (loading || !session) return <p className="p-6 text-sm text-muted-foreground">A carregar…</p>
   return <DashboardContent userId={session.user.id} />
 }
 
@@ -33,12 +33,16 @@ function DashboardContent({ userId }: { userId: string }) {
   const { profile, project, updates, loading } = useProject(userId)
   const [busy, setBusy] = useState(false)
   const [params, setParams] = useSearchParams()
+  const [confirming, setConfirming] = useState(false)
 
-  // Back from Stripe Checkout: confirm, then clean the address.
+  // Back from Stripe Checkout: the webhook needs a moment to create the project, so don't show the plans again.
   useEffect(() => {
     if (params.get('pago') === 'ok') {
       toast.success('Pagamento recebido! O seu projeto vai aparecer em instantes.')
+      setConfirming(true)
       setParams({}, { replace: true })
+      const t = setTimeout(() => setConfirming(false), 60000) // give up waiting after a minute
+      return () => clearTimeout(t)
     }
   }, [params, setParams])
 
@@ -83,7 +87,16 @@ function DashboardContent({ userId }: { userId: string }) {
             )}
           </Card>
 
-          {!project && !profile?.stripe_customer_id && (
+          {!project && confirming && (
+            <Card>
+              <CardHeader>
+                <CardTitle>A confirmar o pagamento…</CardTitle>
+                <CardDescription>Isto demora apenas alguns segundos. Esta página atualiza sozinha.</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+
+          {!project && !confirming && !profile?.stripe_customer_id && (
             <Card>
               <CardHeader>
                 <CardTitle>Escolha o seu plano</CardTitle>

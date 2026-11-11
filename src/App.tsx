@@ -5,6 +5,7 @@ import Admin from '@/pages/Admin'
 import Dashboard from '@/pages/Dashboard'
 import Landing from '@/pages/Landing'
 import Login from '@/pages/Login'
+import NotFound from '@/pages/NotFound'
 import Redefinir from '@/pages/Redefinir'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/redefinir" element={<Redefinir />} />
         <Route path="/painel" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute admin><Admin /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
     </>

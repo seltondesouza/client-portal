@@ -26,7 +26,8 @@ export function Plans() {
     const { data, error } = await supabase.functions.invoke('create-checkout', { body: { priceId } })
     if (error || !data?.url) {
       setBusy(null)
-      toast.error('Não foi possível iniciar o pagamento.')
+      const already = (error as { context?: Response } | null)?.context?.status === 409
+      toast.error(already ? 'Já tem uma subscrição ativa. Use "Gerir pagamento" no painel.' : 'Não foi possível iniciar o pagamento.')
       return
     }
     window.location.href = data.url
