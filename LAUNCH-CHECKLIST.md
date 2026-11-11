@@ -8,11 +8,11 @@ Tags: **[you]** only you can do it, **[me]** I can do it when you say go.
 - Note: someone/something added the webhook idempotency change (migration `0005_project_checkout_session.sql`) during the session; repo, database and deployed function are in sync.
 
 ## 1. Remove before launch (test leftovers)
-- [ ] **[me]** Delete the Vercel variable `VITE_STRIPE_PRICE_TEST` (hides the "Plano de teste" card), then redeploy.
-- [ ] **[me]** Archive the free price "TESTE e-Commerce gratis (remover)" in Stripe (`price_1Uagi03SJEPEFTEtIQM0pfuc`).
-- [ ] **[you]** Cancel the test subscription in Stripe (customer `cus_VbwtaPhXUCVCBn`, subscription `sub_1Uaizb3SJEPEFTEtn90aw6jz`).
-- [ ] **[me]** Delete the test client `seltondesouza0+teste1@gmail.com` and its project, updates and briefing from the database (after you finish testing).
-- [ ] **[me]** Remove the free-price code path from `create-checkout` and the test card from `Plans.tsx` (optional, once the test is over).
+- [x] The "Plano de teste" card and its code are removed. **[you]** Delete the now-unused Vercel variable `VITE_STRIPE_PRICE_TEST` in the Vercel dashboard (Settings → Environment Variables); it no longer does anything.
+- [x] The free test price is archived in Stripe.
+- [x] The test subscription is cancelled (it never charged anything). Optional: delete the test customer `cus_VbwtaPhXUCVCBn` in Stripe.
+- [x] The test client and its project, updates and briefing are deleted. Only the admin account remains.
+- [x] The free-price code path and the test card are removed (function redeployed).
 - [ ] **[you]** Delete the local file `supabase/secrets.env` after loading the secrets (it is git-ignored, but keep no copies of keys).
 - [ ] **[you]** Delete the unused Supabase secrets `RESEND_API_KEY` and `EMAIL_FROM` (Resend is not used).
 - [x] **[me]** Check no demo or placeholder text is left (done: only the "Exemplo:" input hints remain).
