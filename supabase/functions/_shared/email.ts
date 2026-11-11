@@ -14,7 +14,7 @@ function layout(title: string, body: string) {
 export const templates = {
   welcome: () => ({
     subject: 'Pagamento confirmado',
-    html: layout('Pagamento confirmado', 'Obrigado! Recebemos o seu pagamento e o seu projeto já foi criado. Aceda ao painel com o seu email para acompanhar o progresso. Será enviado um link de acesso, sem palavra-passe.'),
+    html: layout('Pagamento confirmado', 'Obrigado! Recebemos o seu pagamento e o seu projeto já foi criado. Aceda ao painel com o seu email e palavra-passe para acompanhar o progresso.'),
   }),
   stage: (stageLabel: string, note?: string) => ({
     subject: `O seu projeto passou para a fase ${stageLabel}`,

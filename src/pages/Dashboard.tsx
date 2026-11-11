@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { AppLayout } from '@/components/AppLayout'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Plans } from '@/components/Plans'
 import { StageTimeline } from '@/components/StageTimeline'
 import { useProject } from '@/hooks/useProject'
 import { useSession } from '@/hooks/useSession'
@@ -31,6 +32,15 @@ export default function Dashboard() {
 function DashboardContent({ userId }: { userId: string }) {
   const { profile, project, updates, loading } = useProject(userId)
   const [busy, setBusy] = useState(false)
+  const [params, setParams] = useSearchParams()
+
+  // Back from Stripe Checkout: confirm, then clean the address.
+  useEffect(() => {
+    if (params.get('pago') === 'ok') {
+      toast.success('Pagamento recebido! O seu projeto vai aparecer em instantes.')
+      setParams({}, { replace: true })
+    }
+  }, [params, setParams])
 
   async function openPortal() {
     setBusy(true)
@@ -66,14 +76,24 @@ function DashboardContent({ userId }: { userId: string }) {
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {profile?.stripe_customer_id ? (
+            {profile?.stripe_customer_id && (
+              <CardContent>
                 <Button onClick={openPortal} disabled={busy}>Gerir pagamento</Button>
-              ) : (
-                <Link to="/" className={buttonVariants()}>Ver planos</Link>
-              )}
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
+
+          {!project && !profile?.stripe_customer_id && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Escolha o seu plano</CardTitle>
+                <CardDescription>Subscreva para começar o seu projeto.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Plans />
+              </CardContent>
+            </Card>
+          )}
 
           {project && (
             <>

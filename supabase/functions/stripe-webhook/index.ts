@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       const s = event.data.object as Stripe.Checkout.Session
       const email = s.customer_details?.email?.toLowerCase()
       if (s.mode === 'subscription' && email) {
-        const userId = await findOrCreateUser(email)
+        const userId = s.client_reference_id ?? (await findOrCreateUser(email)) // the account that paid
         await admin.from('profiles').update({ stripe_customer_id: s.customer as string }).eq('id', userId)
         const { data: project } = await admin
           .from('projects')
