@@ -1,7 +1,7 @@
 import Stripe from 'npm:stripe@17'
 import { admin } from '../_shared/common.ts'
 import { stripe } from '../_shared/stripe.ts'
-import { sendEmail, templates } from '../_shared/email.ts'
+import { notifyAdmin, sendEmail, templates } from '../_shared/email.ts'
 
 const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
 
@@ -65,6 +65,10 @@ Deno.serve(async (req) => {
         if (order) {
           const { data: p } = await admin.from('projects').select('stage').eq('id', m.project_id).single()
           if (p) await admin.from('project_updates').insert({ project_id: m.project_id, stage: p.stage, note: 'Pedido de serviços extra recebido. Vamos tratar disto.' })
+          const names = [...(m.services ? m.services.split(',') : []), ...(m.domain_mode === 'buy' ? [`Domínio ${m.domain}`] : [])].join(', ')
+          const total = s.amount_total ?? Number(m.amount_cents)
+          if (email) await sendEmail(email, templates.orderPaid(names || 'Serviços extra', total)) // only on first delivery
+          await notifyAdmin('Novo pedido', `${email ?? 'Um cliente'} pagou ${(total / 100).toFixed(2)} €: ${names}.`)
         }
       } else if (s.mode === 'subscription' && email) {
         const userId = s.client_reference_id ?? (await findOrCreateUser(email)) // the account that paid
@@ -82,10 +86,30 @@ Deno.serve(async (req) => {
           await admin.from('project_updates').insert({ project_id: project.id, stage: 'pagamento', note: 'Pagamento confirmado.' })
         }
         await syncSubscription(await stripe.subscriptions.retrieve(s.subscription as string))
-        if (project) await sendEmail(email, templates.welcome()) // only on first delivery
+        if (project) {
+          await sendEmail(email, templates.welcome()) // only on first delivery
+          await notifyAdmin('Nova subscrição', `${email} subscreveu o plano ${s.metadata?.plan}.`)
+        }
       }
-    } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    } else if (event.type === 'customer.subscription.updated') {
       await syncSubscription(event.data.object as Stripe.Subscription)
+    } else if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object as Stripe.Subscription
+      await syncSubscription(sub)
+      const { data: p } = await admin.from('profiles').select('email').eq('stripe_customer_id', sub.customer as string).maybeSingle()
+      if (p?.email) await sendEmail(p.email, templates.canceled())
+      await notifyAdmin('Subscrição cancelada', `${p?.email ?? 'Um cliente'} cancelou a subscrição.`)
+    } else if (event.type === 'invoice.payment_failed') {
+      const inv = event.data.object as Stripe.Invoice
+      const to = inv.customer_email
+      // Stripe retries a failing invoice several times: email only on the first attempt.
+      if (to && inv.attempt_count === 1) await sendEmail(to, templates.paymentFailed())
+      await notifyAdmin('Pagamento falhado', `${to ?? 'Um cliente'}: cobrança de ${((inv.amount_due ?? 0) / 100).toFixed(2)} € falhou (tentativa ${inv.attempt_count}).`)
+    } else if (event.type === 'charge.refunded') {
+      const ch = event.data.object as Stripe.Charge
+      const to = ch.billing_details?.email ?? ch.receipt_email
+      if (to) await sendEmail(to, templates.refund(ch.amount_refunded))
+      await notifyAdmin('Reembolso', `${to ?? 'Um cliente'} foi reembolsado em ${(ch.amount_refunded / 100).toFixed(2)} €.`)
     }
   } catch (e) {
     console.error(e)

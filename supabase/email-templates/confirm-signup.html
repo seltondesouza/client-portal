@@ -1,0 +1,8 @@
+<div style="font-family:Inter,Arial,sans-serif;background:#fff;color:#000;padding:32px;max-width:480px;margin:auto">
+  <h1 style="font-size:20px;margin:0 0 16px">Confirme o seu email</h1>
+  <p style="font-size:15px;line-height:1.5;margin:0 0 20px">Use este código para confirmar a sua conta:</p>
+  <p style="font-size:34px;font-weight:700;letter-spacing:8px;margin:0 0 20px">{{ .Token }}</p>
+  <p style="font-size:14px;line-height:1.5;margin:0 0 24px">Ou clique no botão. O código expira em 1 hora.</p>
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#000;color:#fff;padding:10px 18px;text-decoration:none;font-size:14px">Confirmar email</a>
+  <p style="font-size:12px;color:#6b6b6b;margin:32px 0 0">Se não criou uma conta, ignore este email.</p>
+</div>

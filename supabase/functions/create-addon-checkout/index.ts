@@ -1,9 +1,10 @@
 import { admin, cors, getUser, json } from '../_shared/common.ts'
-import { cleanDomain, domainQuote, HOSTING_YEAR_EUR, SERVICES } from '../_shared/pricing.ts'
+import { cleanDomain, domainQuote, HOSTING_YEAR_EUR, MAX_PAGES, PAGE_CENTS, SERVICES } from '../_shared/pricing.ts'
 import { stripe } from '../_shared/stripe.ts'
 
 type Body = {
   services?: string[]
+  pages?: number
   domain?: { mode: 'buy' | 'own' | 'unsure' | 'none'; name?: string }
 }
 
@@ -27,9 +28,15 @@ Deno.serve(async (req) => {
     const ids = [...new Set(body.services ?? [])]
     if (ids.some((s) => !SERVICES[s])) return json({ error: 'invalid service' }, 400)
 
+    const pages = Number.isInteger(body.pages) ? (body.pages as number) : 0
+    if (pages < 0 || pages > MAX_PAGES) return json({ error: 'invalid pages' }, 400)
+
     const mode = body.domain?.mode ?? 'none'
     let domain: string | null = null
-    const lines: { name: string; cents: number }[] = ids.map((s) => ({ name: SERVICES[s].name, cents: SERVICES[s].cents }))
+    // Quote-only services (cents 0) are recorded on the order but never charged.
+    const lines: { name: string; cents: number; qty?: number }[] = ids.filter((s) => SERVICES[s].cents > 0).map((s) => ({ name: SERVICES[s].name, cents: SERVICES[s].cents }))
+    if (pages > 0) lines.push({ name: 'Página extra', cents: PAGE_CENTS, qty: pages })
+    const stored = [...ids, ...(pages > 0 ? [`paginas:${pages}`] : [])]
 
     if (mode === 'buy') {
       domain = cleanDomain(body.domain?.name ?? '')
@@ -45,11 +52,11 @@ Deno.serve(async (req) => {
       if (!domain) return json({ error: 'invalid domain' }, 400)
     }
 
-    const total = lines.reduce((n, l) => n + l.cents, 0)
+    const total = lines.reduce((n, l) => n + l.cents * (l.qty ?? 1), 0)
     const order = {
       client_id: user.id,
       project_id: project.id,
-      services: ids,
+      services: stored,
       domain_mode: mode,
       domain,
       amount_cents: total,
@@ -57,12 +64,12 @@ Deno.serve(async (req) => {
 
     // Nothing to charge (own domain / "I don't know"): just record the choice.
     if (total === 0) {
-      if (mode === 'none') return json({ error: 'nothing selected' }, 400)
+      if (mode === 'none' && stored.length === 0) return json({ error: 'nothing selected' }, 400)
       await admin.from('orders').insert({ ...order, status: 'paid' })
       await admin.from('project_updates').insert({
         project_id: project.id,
         stage: (await admin.from('projects').select('stage').eq('id', project.id).single()).data!.stage,
-        note: mode === 'unsure' ? 'O cliente precisa de ajuda a escolher o domínio.' : `Domínio próprio indicado: ${domain}.`,
+        note: stored.includes('email') ? 'Pedido de orçamento: email profissional. Vamos verificar a disponibilidade e enviar o preço.' : mode === 'unsure' ? 'O cliente precisa de ajuda a escolher o domínio.' : `Domínio próprio indicado: ${domain}.`,
       })
       return json({ done: true })
     }
@@ -72,7 +79,7 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: lines.map((l) => ({
-        quantity: 1,
+        quantity: l.qty ?? 1,
         price_data: { currency: 'eur', unit_amount: l.cents, product_data: { name: l.name } },
       })),
       adaptive_pricing: { enabled: false },
@@ -81,7 +88,7 @@ Deno.serve(async (req) => {
       metadata: {
         kind: 'addon',
         project_id: project.id,
-        services: ids.join(','),
+        services: stored.join(','),
         domain_mode: mode,
         domain: domain ?? '',
         amount_cents: String(total),

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useSession } from '@/hooks/useSession'
-import { eurCents, SERVICES } from '@/lib/services'
+import { eurCents, MAX_PAGES, PAGE_CENTS, SERVICES } from '@/lib/services'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +24,7 @@ export default function Servicos() {
   const { session, loading } = useSession()
   const [hasProject, setHasProject] = useState<boolean | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [pages, setPages] = useState(0)
   const [mode, setMode] = useState<Mode>('none')
   const [query, setQuery] = useState('')
   const [own, setOwn] = useState('')
@@ -39,11 +40,11 @@ export default function Servicos() {
 
   if (loading || !session) return <p className="p-6 text-sm text-muted-foreground">A carregar…</p>
 
-  const servicesTotal = SERVICES.filter((s) => picked.has(s.id)).reduce((n, s) => n + s.cents, 0)
+  const servicesTotal = SERVICES.filter((s) => picked.has(s.id)).reduce((n, s) => n + s.cents, 0) + pages * PAGE_CENTS
   const domainTotal = mode === 'buy' && chosen ? (chosen.priceCents ?? 0) : 0
   const total = servicesTotal + domainTotal
   const domainReady = mode === 'none' || mode === 'unsure' || (mode === 'buy' && !!chosen) || (mode === 'own' && own.includes('.'))
-  const canPay = hasProject && domainReady && (picked.size > 0 || mode !== 'none')
+  const canPay = hasProject && domainReady && (picked.size > 0 || pages > 0 || mode !== 'none')
 
   function toggle(id: string) {
     setPicked((p) => {
@@ -73,6 +74,7 @@ export default function Servicos() {
     const { data, error } = await supabase.functions.invoke('create-addon-checkout', {
       body: {
         services: [...picked],
+        pages,
         domain: { mode, name: mode === 'buy' ? chosen?.domain : mode === 'own' ? own : undefined },
       },
     })
@@ -175,6 +177,17 @@ export default function Servicos() {
           <CardDescription>Pagamento único. Escolha só o que precisar.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-col gap-2 rounded-lg border p-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-medium">Páginas extra <span className="tabular-nums">{eurCents(PAGE_CENTS)} cada</span></p>
+              <p className="text-xs text-muted-foreground">Quantas páginas novas quer? Serviços, equipa, blog…</p>
+            </div>
+            <div className="flex items-center gap-3" role="group" aria-label="Número de páginas extra">
+              <Button type="button" variant="outline" size="icon" aria-label="Menos uma página" disabled={pages === 0} onClick={() => setPages(pages - 1)}>−</Button>
+              <span className="w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite">{pages}</span>
+              <Button type="button" variant="outline" size="icon" aria-label="Mais uma página" disabled={pages >= MAX_PAGES} onClick={() => setPages(pages + 1)}>+</Button>
+            </div>
+          </div>
           {SERVICES.map((s) => {
             const on = picked.has(s.id)
             return (
@@ -190,7 +203,7 @@ export default function Servicos() {
               >
                 <span className="flex items-center justify-between gap-2 text-sm font-medium">
                   {s.name}
-                  <span className="tabular-nums">{eurCents(s.cents)}</span>
+                  <span className="tabular-nums">{'quote' in s && s.quote ? 'Sob consulta' : eurCents(s.cents)}</span>
                 </span>
                 <span className="text-xs text-muted-foreground">{s.text}</span>
               </button>
@@ -205,7 +218,7 @@ export default function Servicos() {
           <p className="text-2xl font-semibold tabular-nums">{eurCents(total)}</p>
         </div>
         <Button size="lg" className="h-11 px-6" disabled={!canPay || busy} onClick={pay}>
-          {busy ? 'A abrir…' : total > 0 ? 'Pagar com Stripe' : 'Guardar escolha'}
+          {busy ? 'A abrir…' : total > 0 ? 'Pagar com Stripe' : picked.has('email') ? 'Pedir orçamento' : 'Guardar escolha'}
         </Button>
       </div>
     </AppLayout>

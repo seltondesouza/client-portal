@@ -170,6 +170,7 @@ export function OrdersList({ orders, onChanged }: { orders: OrderRow[]; onChange
               {o.profiles?.email} · {o.amount_cents ? eurCents(o.amount_cents) : 'Sem custo'}
               {o.domain_mode === 'buy' && ' · registar o domínio e ligá-lo à Vercel'}
               {o.domain_mode === 'unsure' && ' · sugerir nomes ao cliente'}
+              {o.services.includes('email') && ' · EMAIL: verificar disponibilidade/custo e enviar orçamento ao cliente'}
             </p>
           </div>
           <Button size="sm" variant={o.status === 'done' ? 'outline' : 'default'} onClick={() => done(o)}>

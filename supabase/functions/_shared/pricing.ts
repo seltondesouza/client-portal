@@ -1,16 +1,17 @@
 // Server-side price list and domain quotes. The browser never decides a price: checkout recomputes everything here.
 
 // One-time services, in cents (EUR). Keep in sync with src/lib/services.ts (display only).
-export const SERVICES: Record<string, { name: string; cents: number }> = {
-  redesign: { name: 'Redesign completo do website', cents: 14900 },
-  paginas: { name: '3 páginas extra', cents: 5900 },
-  logo: { name: 'Criação de logótipo', cents: 7900 },
-  seo: { name: 'Otimização SEO (Google)', cents: 6900 },
-  textos: { name: 'Escrita de textos profissionais', cents: 4900 },
-  fotos: { name: 'Pack de imagens profissionais', cents: 3900 },
-  email: { name: 'Email profissional com o seu domínio', cents: 3500 },
-  reservas: { name: 'Sistema de reservas / marcações', cents: 9900 },
+export const SERVICES: Record<string, { name: string; cents: number; quote?: boolean }> = {
+  redesign: { name: 'Redesign completo do website', cents: 990 },
+  logo: { name: 'Criação de logótipo', cents: 790 },
+  seo: { name: 'Otimização SEO (Google)', cents: 690 },
+  reservas: { name: 'Sistema de reservas / marcações', cents: 990 },
+  // Depends on the provider cost and on the domain: not charged here, you check it and quote the client.
+  email: { name: 'Email profissional com o seu domínio (orçamento)', cents: 0, quote: true },
 }
+// Extra pages are priced per page (the client picks how many).
+export const PAGE_CENTS = 200
+export const MAX_PAGES = 20
 
 const num = (name: string, fallback: number) => {
   const v = Number(Deno.env.get(name))

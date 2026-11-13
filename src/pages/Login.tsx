@@ -4,7 +4,9 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { HeroShapes } from '@/components/HeroShapes'
+import { AsciiRain } from '@/components/AsciiRain'
+import { PasswordStrength } from '@/components/PasswordStrength'
+import { LockKeyholeIcon, ShieldCheckIcon, CreditCardIcon } from 'lucide-react'
 import { PasswordInput } from '@/components/PasswordInput'
 import { Label } from '@/components/ui/label'
 import { useSession } from '@/hooks/useSession'
@@ -22,6 +24,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState<null | 'confirmar' | 'recuperar'>(null)
   const [busy, setBusy] = useState(false)
+  const [code, setCode] = useState('')
   const [cooldown, setCooldown] = useState(0)
   const { session, loading } = useSession()
   const navigate = useNavigate()
@@ -83,6 +86,16 @@ export default function Login() {
     else toast.success('Email reenviado.')
   }
 
+  // 6-digit code from the confirmation email: an alternative to clicking the link.
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'signup' })
+    setBusy(false)
+    if (error) return toast.error('Código inválido ou expirado. Peça um novo.')
+    navigate('/painel', { replace: true })
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -116,7 +129,7 @@ export default function Login() {
 
   const description = sent
     ? sent === 'confirmar'
-      ? 'Enviámos um email de confirmação para o seu endereço.'
+      ? 'Enviámos um código de confirmação para o seu email.'
       : 'Se o email existir, enviámos um link para definir uma nova palavra-passe.'
     : mode === 'criar'
       ? 'Crie a sua conta para escolher um plano e acompanhar o seu projeto.'
@@ -126,10 +139,10 @@ export default function Login() {
 
   return (
     <div className="relative">
-    <HeroShapes />
+    <AsciiRain className="opacity-60" />
     <main className="relative mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-4">
       <Link to="/" className="text-center text-lg font-semibold">{SITE_NAME}</Link>
-      <Card className="w-full shadow-lg">
+      <Card className="w-full bg-card/95 shadow-lg backdrop-blur">
         <CardHeader>
           <CardTitle>{sent === 'confirmar' ? 'Confirme o seu email' : TITLE[mode]}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -137,9 +150,17 @@ export default function Login() {
         <CardContent>
           {sent === 'confirmar' ? (
             <div className="space-y-4 text-center text-sm">
-              <div className="flex items-center justify-center gap-3 rounded-lg border p-4">
-                <span className="size-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" aria-hidden />
-                <span>Abra o email e clique no link. Esta página entra sozinha.</span>
+              <details className="rounded-lg border p-3 text-left" open>
+              <summary className="cursor-pointer text-center font-medium">Tem um código no email?</summary>
+              <form onSubmit={verifyCode} className="mt-3 space-y-3">
+                <Label htmlFor="code" className="justify-center">Código de 6 dígitos</Label>
+                <Input id="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className="text-center text-xl tracking-[0.4em]" />
+                <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? 'A verificar…' : 'Confirmar'}</Button>
+              </form>
+              </details>
+              <div className="flex items-center justify-center gap-3 rounded-lg border p-3 text-muted-foreground">
+                <span className="size-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" aria-hidden />
+                <span>Ou abra o email e clique no link. Esta página entra sozinha.</span>
               </div>
               <p className="text-muted-foreground">
                 Enviado para <span className="font-medium text-foreground">{email}</span>. Verifique também o spam.
@@ -187,7 +208,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  {mode === 'criar' && <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>}
+                  {mode === 'criar' && <PasswordStrength value={password} onSuggest={setPassword} />}
                 </div>
               )}
               {mode === 'criar' && (
@@ -227,6 +248,11 @@ export default function Login() {
           </p>
         </CardContent>
       </Card>
+      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <li className="flex items-center gap-1.5"><LockKeyholeIcon className="size-3.5" /> Ligação cifrada (HTTPS)</li>
+        <li className="flex items-center gap-1.5"><ShieldCheckIcon className="size-3.5" /> Palavras-passe protegidas</li>
+        <li className="flex items-center gap-1.5"><CreditCardIcon className="size-3.5" /> Pagamentos pela Stripe</li>
+      </ul>
     </main>
     </div>
   )
