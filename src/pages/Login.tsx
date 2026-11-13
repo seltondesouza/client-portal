@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { AsciiRain } from '@/components/AsciiRain'
+import { HeroShapes } from '@/components/HeroShapes'
 import { PasswordStrength } from '@/components/PasswordStrength'
 import { LockKeyholeIcon, ShieldCheckIcon, CreditCardIcon } from 'lucide-react'
 import { PasswordInput } from '@/components/PasswordInput'
@@ -139,9 +139,15 @@ export default function Login() {
 
   return (
     <div className="relative">
-    <AsciiRain className="opacity-60" />
+    <HeroShapes className="opacity-20" />
     <main className="relative mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 px-4">
-      <Link to="/" className="text-center text-lg font-semibold">{SITE_NAME}</Link>
+      <div className="flex flex-col items-center gap-3">
+        <span className="relative grid size-12 place-items-center rounded-full bg-foreground text-background">
+          <LockKeyholeIcon className="size-5" />
+          <span aria-hidden className="ping pointer-events-none absolute -inset-1.5 rounded-full border-2 border-live" />
+        </span>
+        <Link to="/" className="text-center text-lg font-semibold">{SITE_NAME}</Link>
+      </div>
       <Card className="w-full bg-card/95 shadow-lg backdrop-blur">
         <CardHeader>
           <CardTitle>{sent === 'confirmar' ? 'Confirme o seu email' : TITLE[mode]}</CardTitle>
