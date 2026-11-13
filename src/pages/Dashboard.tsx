@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { BriefingWizard } from '@/components/BriefingWizard'
+import { ExtrasPanel } from '@/components/ExtrasPanel'
+import { ReviewCard } from '@/components/ReviewCard'
+import { Stat } from '@/components/Stat'
+import { useOrders } from '@/hooks/useOrders'
+import { stageIndex, STAGES } from '@/lib/stages'
+import { CheckCircle2Icon, CircleIcon, CreditCardIcon, GaugeIcon, PackageIcon, WalletIcon } from 'lucide-react'
 import { Plans } from '@/components/Plans'
 import { ProjectStatus } from '@/components/ProjectStatus'
 import { UpdateFeed } from '@/components/UpdateFeed'
@@ -43,6 +49,7 @@ function DashboardContent({ userId }: { userId: string }) {
   const [confirming, setConfirming] = useState(false)
   const [briefingSent, setBriefingSent] = useState(false)
   const navigate = useNavigate()
+  const orders = useOrders(userId)
   // Links are always shown as absolute addresses, never as paths on this site.
   const liveHref = normalizeUrl(project?.live_url)
   const previewHref = normalizeUrl(project?.preview_url)
@@ -52,6 +59,10 @@ function DashboardContent({ userId }: { userId: string }) {
 
   // Back from Stripe Checkout: the webhook needs a moment to create the project, so don't show the plans again.
   useEffect(() => {
+    if (params.get('extra') === 'ok') {
+      toast.success('Pagamento recebido! Vamos tratar do seu pedido.')
+      setParams({}, { replace: true })
+    }
     if (params.get('pago') === 'ok') {
       toast.success('Pagamento recebido! O seu projeto vai aparecer em instantes.')
       setConfirming(true)
@@ -123,6 +134,13 @@ function DashboardContent({ userId }: { userId: string }) {
 
           {project && (
             <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Stat label="Fase" value={STAGES[stageIndex(project.stage)].label} hint={`${stageIndex(project.stage) + 1} de ${STAGES.length}`} icon={<GaugeIcon />} tone={project.stage === 'online' ? 'live' : undefined} />
+                <Stat label="Progresso" value={`${Math.round(((stageIndex(project.stage) + 1) / STAGES.length) * 100)}%`} hint="Até estar online" icon={<CheckCircle2Icon />} />
+                <Stat label="Subscrição" value={profile?.subscription_status ? STATUS[profile.subscription_status] ?? profile.subscription_status : '—'} hint={profile?.current_period_end ? `Próxima cobrança ${dateFmt.format(new Date(profile.current_period_end))}` : undefined} icon={<WalletIcon />} tone={profile?.subscription_status && STATUS_TONE[profile.subscription_status] ? 'warn' : undefined} />
+                <Stat label="Pedidos extra" value={orders.length} hint={orders.filter((o) => o.status !== 'done').length ? `${orders.filter((o) => o.status !== 'done').length} em curso` : 'Domínio, SEO, logótipo…'} icon={<PackageIcon />} />
+              </div>
+
               <ProjectStatus
                 project={project}
                 status={status}
@@ -131,6 +149,45 @@ function DashboardContent({ userId }: { userId: string }) {
                 previewHref={previewHref}
                 adminHref={adminHref}
               />
+
+              <div className="grid gap-4 lg:grid-cols-5">
+                <section className="rounded-xl border bg-card p-5 lg:col-span-3">
+                  <h2 className="text-base font-semibold">Próximos passos</h2>
+                  <ul className="mt-3 grid gap-1 text-sm">
+                    {[
+                      { done: !!briefing?.submitted_at, text: 'Preencher o briefing', to: '/briefing' },
+                      { done: orders.some((o) => o.domain_mode !== 'none'), text: 'Escolher o domínio do website', to: '/servicos' },
+                      { done: !!previewHref || project.stage === 'online', text: 'Rever a pré-visualização do design', to: null },
+                      { done: project.stage === 'online', text: 'Website online', to: null },
+                    ].map((t) => {
+                      const Icon = t.done ? CheckCircle2Icon : CircleIcon
+                      const inner = (
+                        <>
+                          <Icon className={t.done ? 'size-4 text-live-text' : 'size-4 text-muted-foreground'} />
+                          <span className={t.done ? 'text-muted-foreground line-through' : ''}>{t.text}</span>
+                        </>
+                      )
+                      return (
+                        <li key={t.text}>
+                          {t.to && !t.done ? <Link to={t.to} className="flex items-center gap-2.5 rounded-md p-2 hover:bg-muted">{inner}</Link> : <div className="flex items-center gap-2.5 p-2">{inner}</div>}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+                <section className="grid content-start gap-2 rounded-xl border bg-card p-5 lg:col-span-2">
+                  <h2 className="mb-1 text-base font-semibold">Ações rápidas</h2>
+                  <Link to="/servicos" className="flex items-center gap-2 rounded-lg border p-3 text-sm font-medium hover:bg-muted">Domínio e serviços extra</Link>
+                  <Link to="/briefing" className="flex items-center gap-2 rounded-lg border p-3 text-sm font-medium hover:bg-muted">Ver ou editar o briefing</Link>
+                  {profile?.stripe_customer_id && (
+                    <button type="button" onClick={openPortal} disabled={busy} className="flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium hover:bg-muted disabled:opacity-60">
+                      <CreditCardIcon className="size-4" /> Faturas e método de pagamento
+                    </button>
+                  )}
+                </section>
+              </div>
+
+              <ExtrasPanel orders={orders} />
 
               <Card>
                 <CardHeader>
@@ -141,13 +198,11 @@ function DashboardContent({ userId }: { userId: string }) {
                 </CardContent>
               </Card>
 
-              <p className="text-center text-sm text-muted-foreground">
-                <Link to="/briefing" className="underline">Ver ou editar o briefing</Link>
-              </p>
+              {project.stage !== 'pagamento' && <ReviewCard userId={userId} projectId={project.id} />}
             </>
           )}
 
-          {(profile?.subscription_status || profile?.stripe_customer_id) && (
+          {!project && (profile?.subscription_status || profile?.stripe_customer_id) && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm">
               <div className="space-y-1">
                 <p className="font-medium">Subscrição</p>

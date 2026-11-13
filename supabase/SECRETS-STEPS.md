@@ -41,3 +41,19 @@ Never paste a key into chat or commit it. Paste only into `supabase/secrets.env`
 1. supabase.com/dashboard → project `client-portal` → Edge Functions → Secrets.
 2. "Add or replace secrets", paste the whole content of `secrets.env`, Save.
 3. Delete `secrets.env` or keep it private. It is git-ignored.
+
+## Domínios e serviços extra (novo)
+
+Segredos adicionais das funções (`supabase secrets set NOME=valor`):
+
+| Segredo | Para quê |
+|---|---|
+| `VERCEL_API_TOKEN` | Token da Vercel (Account Settings → Tokens). Dá a disponibilidade e o preço real dos domínios. |
+| `VERCEL_TEAM_ID` | Opcional: ID da equipa, se o domínio for comprado numa equipa. |
+| `MARGIN_PERCENT` | A sua margem em %, por cima do preço de custo (omissão: 10). |
+| `MARGIN_FIXED_EUR` | Margem fixa em € (omissão: 1.37). Preço final = custo × (1 + %) + fixo. |
+| `USD_TO_EUR` | A Vercel cobra em USD; taxa de conversão (omissão: 0.92). |
+| `HOSTING_YEAR_EUR` | Opcional: custo anual de alojamento a cobrar junto com o domínio (omissão: 0). |
+
+Publicar: `supabase functions deploy domain-search create-addon-checkout stripe-webhook`
+(a migração `0006_orders_reviews.sql` já foi aplicada ao projeto).

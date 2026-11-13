@@ -43,7 +43,30 @@ Deno.serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const s = event.data.object as Stripe.Checkout.Session
       const email = s.customer_details?.email?.toLowerCase()
-      if (s.mode === 'subscription' && email) {
+      if (s.mode === 'payment' && s.metadata?.kind === 'addon' && s.payment_status === 'paid' && s.client_reference_id) {
+        const m = s.metadata
+        // Idempotent: one order per Checkout Session.
+        const { data: order } = await admin
+          .from('orders')
+          .upsert(
+            {
+              client_id: s.client_reference_id,
+              project_id: m.project_id,
+              stripe_session_id: s.id,
+              services: m.services ? m.services.split(',') : [],
+              domain_mode: m.domain_mode || 'none',
+              domain: m.domain || null,
+              amount_cents: s.amount_total ?? Number(m.amount_cents),
+            },
+            { onConflict: 'stripe_session_id', ignoreDuplicates: true },
+          )
+          .select('id')
+          .maybeSingle()
+        if (order) {
+          const { data: p } = await admin.from('projects').select('stage').eq('id', m.project_id).single()
+          if (p) await admin.from('project_updates').insert({ project_id: m.project_id, stage: p.stage, note: 'Pedido de serviços extra recebido. Vamos tratar disto.' })
+        }
+      } else if (s.mode === 'subscription' && email) {
         const userId = s.client_reference_id ?? (await findOrCreateUser(email)) // the account that paid
         await admin.from('profiles').update({ stripe_customer_id: s.customer as string }).eq('id', userId)
         // Idempotent: one project per Checkout Session. A retried event finds the row and skips the side effects.

@@ -7,9 +7,10 @@ import { LiveIndicator } from '@/components/LiveIndicator'
 import { Plans } from '@/components/Plans'
 import { Reveal } from '@/components/Reveal'
 import { StageTimeline } from '@/components/StageTimeline'
+import { BuildAnimation, DomainTyper, ServiceIcon } from '@/components/Motion'
+import { Reviews } from '@/components/Reviews'
 import { useCycle } from '@/hooks/useCycle'
 import { useSession } from '@/hooks/useSession'
-import { cn } from '@/lib/utils'
 import { STAGES } from '@/lib/stages'
 import { CONTACT_EMAIL, SITE_NAME } from '@/lib/site'
 
@@ -84,39 +85,38 @@ function HeroExample() {
   )
 }
 
-// The six steps light up in turn, with the full tracker above them on a slow loop.
+// Six numbered steps along a line with a dot travelling over it. Deliberately not another phase tracker:
+// the hero already shows that one.
 function HowItWorks() {
-  const i = useCycle(STAGES.length, 2400, 0)
   return (
     <>
-      <Reveal className="mx-auto mt-10 max-w-3xl rounded-xl border bg-card p-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm">
-          <strong className="font-semibold">{i === 5 ? 'O seu website está online' : `Fase ${i + 1} de ${STAGES.length}: ${STAGES[i].label}`}</strong>
-          <LiveIndicator status="live" />
-        </div>
-        <StageTimeline stage={STAGES[i].key} />
-      </Reveal>
+      <div className="relative mx-auto mt-12 hidden h-3 max-w-4xl lg:block" aria-hidden>
+        <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+        <span className="travel-dot absolute top-0 size-3 rounded-full bg-live ring-4 ring-live/30" />
+      </div>
       <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {STEPS.map(([title, text], n) => {
-          const on = n === i
-          return (
-            <li key={title}>
-              <Reveal delay={(n % 3) * 90} className="h-full">
-                <div className={cn('h-full rounded-xl border bg-background p-6 transition-[transform,border-color] duration-300 ease-out-soft', on && '-translate-y-0.5 border-foreground')}>
-                  <span className={cn('mb-4 flex size-8 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground transition-colors duration-300', on && 'bg-live text-live-foreground')}>
-                    {n + 1}
-                  </span>
-                  <p className="text-[17px] font-semibold">{title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-                </div>
-              </Reveal>
-            </li>
-          )
-        })}
+        {STEPS.map(([title, text], n) => (
+          <li key={title}>
+            <Reveal delay={(n % 3) * 90} className="h-full">
+              <div className="h-full rounded-xl border bg-background p-6">
+                <span className="mb-4 flex size-8 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground">{n + 1}</span>
+                <p className="text-[17px] font-semibold">{title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+              </div>
+            </Reveal>
+          </li>
+        ))}
       </ol>
     </>
   )
 }
+
+const EXTRAS = [
+  { kind: 'domain', title: 'O seu domínio', text: 'Escolha o endereço ou deixe-nos ajudar. Preço real, sem surpresas.' },
+  { kind: 'redesign', title: 'Redesign', text: 'Um site antigo com cara nova, mantendo o que funciona.' },
+  { kind: 'seo', title: 'SEO', text: 'Para ser encontrado no Google por quem procura o que vende.' },
+  { kind: 'logo', title: 'Logótipo', text: 'Uma marca simples e memorável para tudo o que fizer.' },
+] as const
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-center text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{children}</p>
@@ -194,6 +194,47 @@ export default function Landing() {
             <HowItWorks />
           </div>
         </section>
+
+        <section className="mx-auto max-w-5xl px-4 py-24">
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <Reveal>
+              <Eyebrow>Do rascunho ao online</Eyebrow>
+              <h2 className="text-center text-3xl font-semibold tracking-tight text-balance md:text-left md:text-4xl">Construído à sua frente</h2>
+              <p className="mt-3 text-center text-muted-foreground md:text-left">
+                Cada bloco é pensado para o seu negócio. Vê o resultado a crescer no painel, sem enviar emails nem esperar semanas.
+              </p>
+            </Reveal>
+            <Reveal delay={120}><BuildAnimation /></Reveal>
+          </div>
+        </section>
+
+        <section className="border-y bg-muted/40">
+          <div className="mx-auto max-w-5xl px-4 py-24">
+            <Reveal>
+              <Eyebrow>Domínio e extras</Eyebrow>
+              <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">Mais do que um website</h2>
+              <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+                Depois de subscrever, acrescente no seu painel o que precisar. Pagamento único, pela Stripe.
+              </p>
+            </Reveal>
+            <Reveal delay={80} className="mt-8"><DomainTyper /></Reveal>
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {EXTRAS.map((x, i) => (
+                <li key={x.title}>
+                  <Reveal delay={i * 90} className="h-full">
+                    <div className="flex h-full flex-col items-start gap-3 rounded-xl border bg-card p-6">
+                      <ServiceIcon kind={x.kind} />
+                      <p className="text-[17px] font-semibold">{x.title}</p>
+                      <p className="text-sm text-muted-foreground">{x.text}</p>
+                    </div>
+                  </Reveal>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <Reviews />
 
         <section className="mx-auto max-w-2xl px-4 py-24">
           <Reveal>

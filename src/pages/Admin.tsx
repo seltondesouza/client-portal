@@ -1,199 +1,191 @@
-import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRightIcon, EuroIcon, InboxIcon, MessageSquareIcon, RocketIcon, SearchIcon } from 'lucide-react'
 import { AppLayout } from '@/components/AppLayout'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Stat } from '@/components/Stat'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { FIELDS } from '@/lib/briefing'
-import { normalizeUrl } from '@/lib/url'
-import { supabase } from '@/lib/supabase'
-import { StageTimeline } from '@/components/StageTimeline'
-import { PLAN_LABEL, STAGES, stageIndex, stageLabel, type Briefing, type Profile, type Project, type Stage } from '@/lib/stages'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { OrdersList, ProjectEditor, ReviewsList, type Row } from '@/components/admin/parts'
+import { useAdminData } from '@/hooks/useAdminData'
+import { eurCents, orderSummary } from '@/lib/services'
+import { PLAN_LABEL, STAGES, stageLabel } from '@/lib/stages'
+import { cn } from '@/lib/utils'
 
-type Row = Project & { profiles: Pick<Profile, 'email'> | null }
+const dateFmt = new Intl.DateTimeFormat('pt-PT', { day: 'numeric', month: 'short' })
+const Loading = () => <p className="text-sm text-muted-foreground">A carregar…</p>
 
-function BriefingView({ briefing }: { briefing?: Briefing }) {
-  if (!briefing) return <p className="text-sm text-muted-foreground">Briefing: ainda não iniciado.</p>
-  const entries = FIELDS.filter((f) => {
-    const v = briefing.answers[f.key]
-    return Array.isArray(v) ? v.length > 0 : !!v
-  })
-  return (
-    <details className="rounded-lg border p-3 text-sm">
-      <summary className="cursor-pointer font-medium">
-        Briefing {briefing.submitted_at ? 'enviado' : 'em curso'} ({entries.length} respostas)
-      </summary>
-      <dl className="mt-3 space-y-3">
-        {entries.map((f) => {
-          const v = briefing.answers[f.key]
-          return (
-            <div key={f.key}>
-              <dt className="text-xs text-muted-foreground">{f.label}</dt>
-              <dd className="whitespace-pre-wrap">{Array.isArray(v) ? v.join(', ') : v}</dd>
-            </div>
-          )
-        })}
-      </dl>
-    </details>
-  )
-}
+// ---- Overview: what needs doing today, the pipeline, recent orders and activity ----
+export function AdminHome() {
+  const { rows, briefings, orders, reviews, activity, loading } = useAdminData()
+  if (loading) return <AppLayout title="Visão geral"><Loading /></AppLayout>
 
-function ProjectEditor({ row, briefing, onSaved }: { row: Row; briefing?: Briefing; onSaved: () => void }) {
-  const [note, setNote] = useState('')
-  const [preview, setPreview] = useState(row.preview_url ?? '')
-  const [liveUrl, setLiveUrl] = useState(row.live_url ?? '')
-  const [adminUrl, setAdminUrl] = useState(row.admin_url ?? '')
-  const [busy, setBusy] = useState(false)
-  const current = stageIndex(row.stage)
-  const next = STAGES[current + 1]
-  const prev = STAGES[current - 1]
-  const lastStep = next?.key === 'online' // the last step needs the final website address
-  const liveOk = !!normalizeUrl(liveUrl)
+  const running = rows.filter((r) => r.stage !== 'online')
+  const openOrders = orders.filter((o) => o.status !== 'done')
+  const pendingReviews = reviews.filter((r) => !r.approved)
+  const readyToAdvance = rows.filter((r) => r.stage === 'briefing' && briefings[r.id]?.submitted_at)
+  const lateBilling = rows.filter((r) => ['past_due', 'unpaid'].includes(r.profiles?.subscription_status ?? ''))
+  const revenue = orders.reduce((n, o) => n + o.amount_cents, 0)
+  const counts = STAGES.map((s) => rows.filter((r) => r.stage === s.key).length)
+  const max = Math.max(1, ...counts)
 
-  async function apply(target: Stage) {
-    const previewClean = normalizeUrl(preview)
-    const liveClean = normalizeUrl(liveUrl)
-    const adminClean = normalizeUrl(adminUrl)
-    if (preview.trim() && !previewClean) return toast.error('Link de pré-visualização inválido. Exemplo: www.exemplo.pt')
-    if (liveUrl.trim() && !liveClean) return toast.error('Endereço final inválido. Exemplo: www.exemplo.pt')
-    if (adminUrl.trim() && !adminClean) return toast.error('Link de administração inválido. Exemplo: www.exemplo.pt/admin')
-    setBusy(true)
-    // The function updates the project and logs the update; the client sees it live on their dashboard.
-    const { error } = await supabase.functions.invoke('notify-stage', {
-      body: { project_id: row.id, stage: target, note, preview_url: previewClean ?? '', live_url: liveClean ?? '', admin_url: adminClean ?? '' },
-    })
-    setBusy(false)
-    if (error) return toast.error('Erro ao guardar.')
-    toast.success(target === row.stage ? 'Enviado ao cliente.' : `Fase: ${stageLabel(target)}. Cliente atualizado.`)
-    setNote('')
-    onSaved()
-  }
+  const todo = [
+    ...openOrders.map((o) => ({ id: o.id, to: '/admin/pedidos', text: `${o.profiles?.email}: ${orderSummary(o)}`, tag: 'Pedido' })),
+    ...readyToAdvance.map((r) => ({ id: r.id, to: '/admin/clientes', text: `${r.profiles?.email} enviou o briefing`, tag: 'Briefing' })),
+    ...pendingReviews.map((r) => ({ id: r.id, to: '/admin/reviews', text: `${r.author_name}: "${r.body.slice(0, 50)}"`, tag: 'Review' })),
+    ...lateBilling.map((r) => ({ id: r.id + 'b', to: '/admin/clientes', text: `${r.profiles?.email} tem pagamento em atraso`, tag: 'Pagamento' })),
+  ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          {row.profiles?.email}
-          <span className="block text-sm font-normal text-muted-foreground">
-            {PLAN_LABEL[row.plan]} · Fase {current + 1} de {STAGES.length}: {stageLabel(row.stage)}
-          </span>
-        </CardTitle>
-        <StageTimeline stage={row.stage} compact />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <BriefingView briefing={briefing} />
+    <AppLayout title="Visão geral">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Projetos a decorrer" value={running.length} hint={`${rows.length} no total`} icon={<RocketIcon />} />
+        <Stat label="Pedidos por tratar" value={openOrders.length} hint="Domínios e extras" icon={<InboxIcon />} tone={openOrders.length ? 'warn' : undefined} />
+        <Stat label="Reviews por aprovar" value={pendingReviews.length} icon={<MessageSquareIcon />} tone={pendingReviews.length ? 'warn' : undefined} />
+        <Stat label="Extras vendidos" value={eurCents(revenue)} hint={`${orders.length} pedidos`} icon={<EuroIcon />} tone="live" />
+      </div>
 
-        {next ? (
-          <div className="space-y-2">
-            {lastStep && (
-              <div className="space-y-2">
-                <Label htmlFor={`u-${row.id}`}>Endereço final do website *</Label>
-                <Input
-                  id={`u-${row.id}`}
-                  inputMode="url"
-                  placeholder="www.exemplo.pt"
-                  value={liveUrl}
-                  onChange={(e) => setLiveUrl(e.target.value)}
-                />
-              </div>
-            )}
-            <Button size="lg" className="w-full" disabled={busy || (lastStep && !liveOk)} onClick={() => apply(next.key)}>
-              {busy ? 'A atualizar…' : lastStep ? 'Publicar: marcar como online' : `Avançar para ${next.label} →`}
-            </Button>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <section className="rounded-xl border bg-card p-5 lg:col-span-3">
+          <h2 className="text-base font-semibold">Precisa de atenção</h2>
+          {todo.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">Tudo em dia. Não há nada pendente.</p>
+          ) : (
+            <ul className="mt-3 divide-y text-sm">
+              {todo.slice(0, 7).map((t) => (
+                <li key={t.id}>
+                  <Link to={t.to} className="flex items-center justify-between gap-3 py-2.5 hover:text-muted-foreground">
+                    <span className="min-w-0 truncate">{t.text}</span>
+                    <Badge variant="outline" className="shrink-0">{t.tag}</Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-xl border bg-card p-5 lg:col-span-2">
+          <h2 className="text-base font-semibold">Funil de projetos</h2>
+          <ul className="mt-3 grid gap-2.5 text-sm">
+            {STAGES.map((s, i) => (
+              <li key={s.key} className="grid grid-cols-[6.5rem_1fr_1.5rem] items-center gap-2">
+                <span className="text-muted-foreground">{s.label}</span>
+                <span className="h-2 overflow-hidden rounded-full bg-muted">
+                  <span className={cn('block h-full rounded-full', s.key === 'online' ? 'bg-live' : 'bg-primary')} style={{ width: `${(counts[i] / max) * 100}%` }} />
+                </span>
+                <span className="text-right tabular-nums">{counts[i]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Últimos pedidos</h2>
+            <Link to="/admin/pedidos" className="text-xs text-muted-foreground underline">Ver todos</Link>
           </div>
-        ) : (
-          <div className="rounded-lg border p-3 text-center text-sm">
-            <p className="font-medium">Projeto online ✓</p>
-            {normalizeUrl(row.live_url) && (
-              <a href={normalizeUrl(row.live_url)!} target="_blank" rel="noreferrer" className="break-all underline">{normalizeUrl(row.live_url)}</a>
-            )}
-          </div>
-        )}
+          {orders.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Ainda sem pedidos.</p> : (
+            <ul className="mt-3 divide-y text-sm">
+              {orders.slice(0, 5).map((o) => (
+                <li key={o.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0 truncate">{orderSummary(o)}<span className="block truncate text-xs text-muted-foreground">{o.profiles?.email}</span></span>
+                  <span className="shrink-0 tabular-nums">{o.amount_cents ? eurCents(o.amount_cents) : '—'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="rounded-xl border bg-card p-5">
+          <h2 className="text-base font-semibold">Atividade recente</h2>
+          {activity.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Sem atividade.</p> : (
+            <ul className="mt-3 divide-y text-sm">
+              {activity.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0 truncate">{a.note ?? stageLabel(a.stage)}<span className="block truncate text-xs text-muted-foreground">{a.projects?.profiles?.email}</span></span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{dateFmt.format(new Date(a.created_at))}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
 
-        <details className="rounded-lg border p-3 text-sm">
-          <summary className="cursor-pointer text-muted-foreground">Mais opções (nota, link, voltar)</summary>
-          <div className="mt-3 space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor={`n-${row.id}`}>Nota para o cliente</Label>
-              <Textarea id={`n-${row.id}`} value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`p-${row.id}`}>Link de pré-visualização</Label>
-              <Input id={`p-${row.id}`} inputMode="url" placeholder="www.exemplo.pt" value={preview} onChange={(e) => setPreview(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`a-${row.id}`}>Link de administração do website (opcional)</Label>
-              <Input id={`a-${row.id}`} inputMode="url" placeholder="www.exemplo.pt/admin" value={adminUrl} onChange={(e) => setAdminUrl(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Se preencher, o cliente vê um botão no painel para abrir a administração do site dela.</p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              A nota e o link seguem com o próximo passo, ou pode enviá-los já, sem mudar de fase.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={busy || (!note && (normalizeUrl(preview) ?? '') === (row.preview_url ?? '') && (normalizeUrl(liveUrl) ?? '') === (row.live_url ?? '') && (normalizeUrl(adminUrl) ?? '') === (row.admin_url ?? ''))} onClick={() => apply(row.stage)}>
-                Enviar nota / link
-              </Button>
-              {prev && (
-                <Button variant="ghost" disabled={busy} onClick={() => apply(prev.key)}>
-                  ← Voltar para {prev.label}
-                </Button>
-              )}
-            </div>
-          </div>
-        </details>
-      </CardContent>
-    </Card>
-  )
-}
-
-export default function Admin() {
-  const [rows, setRows] = useState<Row[]>([])
-  const [briefings, setBriefings] = useState<Record<string, Briefing>>({})
-  const [loading, setLoading] = useState(true)
-  const [q, setQ] = useState('')
-
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select('*, profiles(email)')
-      .order('created_at', { ascending: false })
-    setRows((data as Row[]) ?? [])
-    const { data: b } = await supabase.from('briefings').select('*')
-    setBriefings(Object.fromEntries(((b as Briefing[]) ?? []).map((x) => [x.project_id, x])))
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const term = q.trim().toLowerCase()
-  const visible = rows.filter(
-    (r) => !term || (r.profiles?.email ?? '').toLowerCase().includes(term) || PLAN_LABEL[r.plan].toLowerCase().includes(term),
-  )
-
-  return (
-    <AppLayout title="Clientes e projetos">
-      {loading ? (
-        <p className="text-sm text-muted-foreground">A carregar…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Ainda sem projetos.</p>
-      ) : (
-        <>
-          <Input
-            type="search"
-            placeholder="Pesquisar por email ou plano…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhum resultado.</p>}
-          {visible.map((r) => (
-            <ProjectEditor key={r.id + r.stage} row={r} briefing={briefings[r.id]} onSaved={load} />
-          ))}
-        </>
-      )}
+      <Link to="/admin/clientes" className={buttonVariants({ variant: 'outline', className: 'w-fit' })}>Gerir clientes <ArrowRightIcon /></Link>
     </AppLayout>
   )
+}
+
+// ---- Clients: searchable table, stage filter, editor in a side sheet ----
+export function AdminClientes() {
+  const { rows, briefings, loading, reload } = useAdminData()
+  const [q, setQ] = useState('')
+  const [stage, setStage] = useState<string>('todas')
+  const [open, setOpen] = useState<Row | null>(null)
+  if (loading) return <AppLayout title="Clientes"><Loading /></AppLayout>
+
+  const term = q.trim().toLowerCase()
+  const visible = rows.filter((r) => (stage === 'todas' || r.stage === stage) && (!term || (r.profiles?.email ?? '').toLowerCase().includes(term)))
+  const current = open ? rows.find((r) => r.id === open.id) ?? open : null
+
+  return (
+    <AppLayout title="Clientes">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-52 flex-1">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input type="search" className="pl-9" placeholder="Pesquisar por email…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por fase">
+          {[{ key: 'todas', label: 'Todas' }, ...STAGES].map((s) => (
+            <button key={s.key} type="button" aria-pressed={stage === s.key} onClick={() => setStage(s.key)}
+              className={cn('h-8 rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-foreground', stage === s.key ? 'border-foreground bg-foreground text-background' : 'text-muted-foreground hover:bg-muted')}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow><TableHead>Cliente</TableHead><TableHead className="hidden sm:table-cell">Plano</TableHead><TableHead>Fase</TableHead><TableHead className="hidden md:table-cell">Subscrição</TableHead><TableHead /></TableRow>
+          </TableHeader>
+          <TableBody>
+            {visible.length === 0 && <TableRow><TableCell colSpan={5} className="text-muted-foreground">Nenhum cliente.</TableCell></TableRow>}
+            {visible.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="max-w-48 truncate font-medium">{r.profiles?.email}</TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">{PLAN_LABEL[r.plan]}</TableCell>
+                <TableCell><Badge variant={r.stage === 'online' ? 'live' : 'outline'}>{stageLabel(r.stage)}</Badge></TableCell>
+                <TableCell className="hidden md:table-cell"><Badge variant={['past_due', 'unpaid'].includes(r.profiles?.subscription_status ?? '') ? 'warn' : 'liveSoft'}>{r.profiles?.subscription_status ?? '—'}</Badge></TableCell>
+                <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => setOpen(r)}>Gerir</Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Sheet open={!!current} onOpenChange={(v) => !v && setOpen(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+          <SheetHeader><SheetTitle>Gerir projeto</SheetTitle></SheetHeader>
+          <div className="px-4 pb-6">
+            {current && <ProjectEditor key={current.id + current.stage} row={current} briefing={briefings[current.id]} onSaved={reload} />}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </AppLayout>
+  )
+}
+
+export function AdminPedidos() {
+  const { orders, loading, reload } = useAdminData()
+  return <AppLayout title="Pedidos">{loading ? <Loading /> : <OrdersList orders={orders} onChanged={reload} />}</AppLayout>
+}
+
+export function AdminReviews() {
+  const { reviews, loading, reload } = useAdminData()
+  return <AppLayout title="Reviews">{loading ? <Loading /> : <ReviewsList reviews={reviews} onChanged={reload} />}</AppLayout>
 }

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboardIcon, UsersIcon } from 'lucide-react'
+import { FileTextIcon, InboxIcon, LayoutDashboardIcon, LifeBuoyIcon, SparklesIcon, StarIcon, UsersIcon } from 'lucide-react'
 import { NavUser } from '@/components/nav-user'
 import {
   Sidebar,
@@ -14,14 +14,23 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useSession } from '@/hooks/useSession'
+import { CONTACT_EMAIL } from '@/lib/site'
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation()
   const { session, isAdmin } = useSession()
-  const items = [
-    { title: 'O meu projeto', url: '/painel', icon: <LayoutDashboardIcon /> },
-    ...(isAdmin ? [{ title: 'Clientes (admin)', url: '/admin', icon: <UsersIcon /> }] : []),
-  ]
+  const items = isAdmin
+    ? [
+        { title: 'Visão geral', url: '/admin', icon: <LayoutDashboardIcon /> },
+        { title: 'Clientes', url: '/admin/clientes', icon: <UsersIcon /> },
+        { title: 'Pedidos', url: '/admin/pedidos', icon: <InboxIcon /> },
+        { title: 'Reviews', url: '/admin/reviews', icon: <StarIcon /> },
+      ]
+    : [
+        { title: 'O meu projeto', url: '/painel', icon: <LayoutDashboardIcon /> },
+        { title: 'Serviços e domínio', url: '/servicos', icon: <SparklesIcon /> },
+        { title: 'Briefing', url: '/briefing', icon: <FileTextIcon /> },
+      ]
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -40,7 +49,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton isActive={pathname === item.url} tooltip={item.title} render={<Link to={item.url} />}>
+                  <SidebarMenuButton isActive={item.url === '/admin' || item.url === '/painel' ? pathname === item.url : pathname.startsWith(item.url)} tooltip={item.title} render={<Link to={item.url} />}>
                     {item.icon}
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -49,6 +58,20 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {!isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip="Ajuda" render={<a href={`mailto:${CONTACT_EMAIL}`} />}>
+                    <LifeBuoyIcon />
+                    <span>Ajuda</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser email={session?.user.email ?? ''} />

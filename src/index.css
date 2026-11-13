@@ -199,3 +199,27 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-property: color, background-color, border-color, fill, stroke !important; }
 }
+
+/* ---- Homepage vector animations (Motion.tsx) ---- */
+@keyframes bd-build { 0% { opacity: 0; transform: translateY(10px) scale(0.96); } 8%, 78% { opacity: 1; transform: none; } 92%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes si-spin { to { transform: rotate(360deg); } }
+@keyframes si-swap { 0%, 40% { transform: translateX(0); } 50%, 90% { transform: translateX(-6px); } 100% { transform: translateX(0); } }
+@keyframes si-bar { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(1); } }
+@keyframes si-draw { 0% { stroke-dashoffset: 100; } 55%, 100% { stroke-dashoffset: 0; } }
+@keyframes si-dot { 0%, 45% { transform: scale(0); } 70%, 100% { transform: scale(1); } }
+@keyframes travel { from { left: 0; } to { left: calc(100% - 12px); } }
+
+.bd-b { animation: bd-build 7s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.si-globe, .si-bar, .si-swap-a, .si-swap-b, .si-dot { transform-box: fill-box; transform-origin: center; }
+.si-globe { animation: si-spin 9s linear infinite; }
+.si-bar { transform-origin: bottom; animation: si-bar 2.4s ease-in-out infinite; }
+.si-swap-a { animation: si-swap 4s ease-in-out infinite; }
+.si-swap-b { animation: si-swap 4s ease-in-out infinite reverse; }
+.si-draw { stroke-dasharray: 100; animation: si-draw 4s ease-in-out infinite alternate; }
+.si-dot { animation: si-dot 4s ease-in-out infinite alternate; }
+.travel-dot { animation: travel 6s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-b, .si-globe, .si-bar, .si-swap-a, .si-swap-b, .si-draw, .si-dot, .travel-dot { animation: none; opacity: 1; }
+  .si-draw { stroke-dashoffset: 0; }
+}
