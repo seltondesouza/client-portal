@@ -57,3 +57,13 @@ Segredos adicionais das funções (`supabase secrets set NOME=valor`):
 
 Publicar: `supabase functions deploy domain-search create-addon-checkout stripe-webhook`
 (a migração `0006_orders_reviews.sql` já foi aplicada ao projeto).
+
+## Emails com a Brevo
+| Segredo | Valor |
+|---|---|
+| `BREVO_API_KEY` | Chave de API da Brevo (SMTP & API → API Keys). |
+| `EMAIL_FROM` | Email remetente **verificado** na Brevo (Senders, Domains & Dedicated IPs → Senders). |
+
+Ordem de envio: Brevo, depois Resend, depois Gmail. Para os emails do Supabase Auth (código e recuperar palavra-passe):
+Authentication → SMTP Settings: host `smtp-relay.brevo.com`, porta `587`, utilizador = o *SMTP login* da Brevo,
+palavra-passe = uma **chave SMTP** (SMTP & API → SMTP). A chave de API não funciona como palavra-passe SMTP.

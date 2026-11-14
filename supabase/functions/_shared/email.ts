@@ -1,4 +1,4 @@
-// Transactional emails. Sends with Resend when RESEND_API_KEY is set, otherwise falls back to Gmail SMTP,
+// Transactional emails. Sends with Brevo when BREVO_API_KEY is set, else Resend when RESEND_API_KEY is set, else Gmail SMTP,
 // and does nothing (in-app updates only) when neither is configured. One simple black-and-white template.
 // Only service emails go out from here (confirmations, receipts, project updates): no marketing, so no unsubscribe link is needed.
 import nodemailer from 'npm:nodemailer@6'
@@ -59,6 +59,19 @@ export const templates = {
 
 export async function sendEmail(to: string, t: { subject: string; html: string }) {
   try {
+    const brevoKey = Deno.env.get('BREVO_API_KEY')
+    if (brevoKey) {
+      // Brevo: free tier, only needs a verified sender address (EMAIL_FROM), no domain.
+      const sender = Deno.env.get('EMAIL_FROM')
+      if (!sender) { console.error('Brevo: EMAIL_FROM is not set'); return }
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ sender: { name: FROM_NAME, email: sender }, to: [{ email: to }], subject: t.subject, htmlContent: t.html }),
+      })
+      if (!res.ok) console.error('Brevo error', res.status, await res.text())
+      return
+    }
     const resendKey = Deno.env.get('RESEND_API_KEY')
     if (resendKey) {
       const from = Deno.env.get('RESEND_FROM') ?? `${FROM_NAME} <onboarding@resend.dev>`
