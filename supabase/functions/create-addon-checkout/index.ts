@@ -83,6 +83,10 @@ Deno.serve(async (req) => {
         price_data: { currency: 'eur', unit_amount: l.cents, product_data: { name: l.name } },
       })),
       adaptive_pricing: { enabled: false },
+      locale: 'pt',
+      custom_text: {
+        submit: { message: 'Pagamento único, sem renovação. Acompanha o pedido no seu painel.' },
+      },
       client_reference_id: user.id,
       ...(profile?.stripe_customer_id ? { customer: profile.stripe_customer_id } : { customer_email: user.email }),
       metadata: {

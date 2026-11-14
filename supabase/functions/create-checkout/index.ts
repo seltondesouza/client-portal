@@ -27,6 +27,11 @@ Deno.serve(async (req) => {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
+      locale: 'pt', // Portuguese checkout page
+      custom_text: {
+        submit: { message: 'Pagamento seguro processado pela Stripe. Cancele quando quiser, no seu painel.' },
+        after_submit: { message: 'Depois do pagamento, preencha o briefing e acompanhe o projeto em direto.' },
+      },
       adaptive_pricing: { enabled: false }, // always charge in EUR
       client_reference_id: user.id,
       ...(profile?.stripe_customer_id ? { customer: profile.stripe_customer_id } : { customer_email: user.email }),
